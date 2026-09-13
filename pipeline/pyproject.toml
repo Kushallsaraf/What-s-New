@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whats-new-research"
+version = "0.1.0"
+description = "Zero-cost data and forecasting evaluation pipeline for What's New"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+kronos = [
+  "numpy>=1.26",
+  "pandas>=2.2",
+  "torch>=2.2",
+  "huggingface-hub>=0.24",
+]
+
+[project.scripts]
+whats-new-benchmark = "whats_new.benchmark:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
