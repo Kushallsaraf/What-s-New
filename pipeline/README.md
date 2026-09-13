@@ -1,6 +1,6 @@
 # Research pipeline
 
-This directory keeps heavier data pulls and model evaluation away from the phone. The mobile PWA only receives small, precomputed JSON payloads.
+This directory keeps heavier data pulls and model evaluation away from the phone. The native Expo/React Native client only receives small, precomputed JSON payloads.
 
 ## Baseline benchmark (no third-party packages)
 

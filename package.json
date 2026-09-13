@@ -9,6 +9,10 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "mobile:start": "npm --prefix mobile start",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:typecheck": "npm --prefix mobile run typecheck",
     "lint": "oxlint",
     "format": "oxfmt"
   },

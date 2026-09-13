@@ -15,7 +15,7 @@ Scheduled Python worker ──► validation / provenance / confidence
                  compact JSON payloads
                           │
                           ▼
-               mobile-first TypeScript PWA
+              Expo / React Native mobile app
 ```
 
 The phone renders precomputed results and stores lightweight preferences. It does not download model weights, parse large filing archives, or run forecasting inference.
@@ -27,15 +27,15 @@ The phone renders precomputed results and stores lightweight preferences. It doe
 3. **Periodic watchlist digest** — delivered when tracked assets have meaningful changes.
 4. **End-of-day supplement** — optional and secondary.
 
-## Web contracts
+## Compact API contracts
 
 - `GET /api/health` reports the runtime mode and whether Kronos is enabled.
 - `GET /api/briefings` demonstrates the evidence/scenario/risk/confidence contract.
 - `GET /api/assets` returns clearly delayed demo assets.
 - `GET /api/sources` exposes source policy and access class.
 
-For the hosted MVP these endpoints are stateless and Cloudflare-compatible. A later phase can add a small D1/SQLite store for generated briefings, watchlists, and delivery state.
+The native client can point `EXPO_PUBLIC_RESEARCH_API_URL` at a compatible deployment. The current endpoints remain stateless and Cloudflare-compatible. A later phase can add a small D1/SQLite store for generated briefings and delivery state.
 
 ## Persistence
 
-Watchlist and briefing preferences currently use browser local storage. This is deliberate for a zero-cost, single-device validation build. Account sync is deferred until user retention justifies authentication and server storage.
+Watchlist and briefing preferences use React Native AsyncStorage on the device. This is deliberate for a zero-cost, single-device validation build. Account sync is deferred until user retention justifies authentication and server storage.

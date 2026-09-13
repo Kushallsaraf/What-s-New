@@ -1,40 +1,52 @@
-# What's New
+# What's New — native mobile MVP
 
-An evidence-first, mobile-first market-research MVP. It answers “what changed, why might it matter, and what would change the view?” without giving direct buy or sell instructions.
+An evidence-first market-research app for iOS and Android. It answers “what changed, why might it matter, and what would change the view?” without giving direct buy or sell instructions.
 
-## What works now
+## Primary client: React Native
 
-- Morning briefing with evidence, scenarios, risks, source links, and confidence
-- Event-driven alert preference and periodic watchlist cadence
-- Persistent local watchlist with asset search and discovery
-- Market overview with a “why is it moving?” evidence map
-- Per-asset evidence timeline and freshness labels
-- Mobile bottom navigation and installable PWA shell
-- Small JSON API contracts for briefings, assets, sources, and health
+The product now lives in [`mobile/`](mobile/). It is an Expo/React Native app built from the supplied Claude mobile artifacts as the visual source of truth: the same trading-terminal palette, Manrope and IBM Plex Mono typography, research cards, five-tab navigation, watchlist, profile controls, detail views, and Ask AI overlay.
+
+The previous root web app remains as a legacy validation prototype and API-contract reference. It is not the product target.
+
+## What works in the mobile MVP
+
+- Morning briefing with evidence, scenarios, risks, and confidence
+- Event-driven in-app research alerts
+- Periodic watchlist-update preferences
+- Supplementary end-of-day setting, disabled by default
+- Persistent on-device watchlist, interests, and alert preferences
+- Explore, Markets, Watchlist, Profile, source-linked research detail, and Ask AI flows
+- Bundled delayed demo snapshot with an optional compact API endpoint
 - Python rolling-origin baseline benchmark
 - Optional Kronos Mini/Small zero-shot adapter with an explicit retention gate
 
-All visible prices and market readings are fixed demo data and labeled delayed. The next data milestone is to connect scheduled official-source pulls, then add a display-licensed free price source.
+All bundled prices and readings are fixed demo data and clearly labeled delayed. The next data milestone is connecting scheduled official-source pulls and a legally displayable free price source.
 
-## Run the web app
+## Run it on a phone
 
-Requirements: Node.js 22.13 or newer.
+Requirements: Node.js 22.13+ or 24.3+, npm, and the free Expo Go app.
 
 ```bash
+cd mobile
 npm install
-npm run dev
+npm start
 ```
 
-Open `http://localhost:3000`.
+Scan the QR code with Expo Go. The same codebase runs on both iOS and Android.
+
+Optional: set `EXPO_PUBLIC_RESEARCH_API_URL` to the base URL of a compatible API. Without it, the app safely uses the bundled delayed snapshot.
 
 Quality checks:
 
 ```bash
-npm run lint
-npm run build
+cd mobile
+npm run typecheck
+npx expo-doctor
+npx expo export --platform ios
+npx expo export --platform android
 ```
 
-## Run the research tests
+## Research pipeline
 
 The baseline suite uses only the Python standard library:
 
@@ -47,7 +59,7 @@ See [`pipeline/README.md`](pipeline/README.md) for the optional Kronos evaluatio
 
 ## Architecture
 
-The phone is a thin PWA client. Heavy source pulls, document processing, and optional model inference belong in scheduled Python jobs that emit compact, source-linked JSON. This keeps mobile memory use small even if a research worker needs substantially more RAM.
+The phone is a thin native client. Heavy source pulls, document processing, and optional model inference belong in scheduled Python jobs that emit compact, source-linked JSON. This keeps mobile memory use small even if a research worker needs substantially more RAM.
 
 See [`docs/architecture.md`](docs/architecture.md), [`docs/data-sources.md`](docs/data-sources.md), and [`docs/model-policy.md`](docs/model-policy.md).
 
