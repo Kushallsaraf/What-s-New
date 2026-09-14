@@ -1,0 +1,64 @@
+# Single source of truth for Cloud Scheduler and local runners.
+# Timezone: America/New_York (US equity market calendar)
+
+timezone = "America/New_York"
+
+[[job]]
+name = "news_ingest"
+cron = "*/30 7-16 * * 1-5"
+description = "Fetch news every 30 minutes during market-adjacent hours"
+timeout_seconds = 900
+
+[[job]]
+name = "news_ingest_premarket"
+cron = "30 7 * * 1-5"
+description = "Extra pre-market news fetch"
+timeout_seconds = 900
+
+[[job]]
+name = "kronos_predict"
+cron = "0 8,10,12,14,15,16 * * 1-5"
+description = "Kronos / quant refresh at key session times (15:30 approximated as :00/:30 via separate entry)"
+timeout_seconds = 1800
+
+[[job]]
+name = "kronos_predict_1530"
+cron = "30 15 * * 1-5"
+description = "Kronos refresh 15:30 ET"
+timeout_seconds = 1800
+
+[[job]]
+name = "kronos_predict_1615"
+cron = "15 16 * * 1-5"
+description = "Final Kronos refresh after close data"
+timeout_seconds = 1800
+
+[[job]]
+name = "market_data"
+cron = "*/15 9-16 * * 1-5"
+description = "Ingest OHLCV bars for the universe"
+timeout_seconds = 900
+
+[[job]]
+name = "morning_report"
+cron = "0 8 * * 1-5"
+description = "Morning Brief generation"
+timeout_seconds = 1200
+
+[[job]]
+name = "closing_report"
+cron = "30 16 * * 1-5"
+description = "Closing Report generation"
+timeout_seconds = 1200
+
+[[job]]
+name = "resolve_outcomes"
+cron = "0 18 * * 1-5"
+description = "Resolve prediction outcomes against actual returns"
+timeout_seconds = 900
+
+[[job]]
+name = "signals_refresh"
+cron = "5 8,10,12,14,15,16 * * 1-5"
+description = "Recompute signal engine after quant / news updates"
+timeout_seconds = 900
