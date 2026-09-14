@@ -111,8 +111,8 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         if sector in {"ETF", ""} or len(scores) < 3:
             continue
         avg = sum(scores) / len(scores)
-    # Build top movers in sector from latest signals
-    try:
+        # Build top movers in sector from latest signals
+        try:
             movers = db.fetch_all(
                 """
                 SELECT DISTINCT ON (s.ticker) s.ticker, s.overall_score
