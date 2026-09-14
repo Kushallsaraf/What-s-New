@@ -17,6 +17,11 @@ class RawArticle:
     content: str = ""
     tickers: list[str] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
+    # Market themes matched when the text names no company, plus the liquid
+    # proxies they route to. Kept separate from `tickers` so downstream code
+    # can tell "this article named Exxon" from "this is an energy story".
+    themes: list[str] = field(default_factory=list)
+    proxy_tickers: list[str] = field(default_factory=list)
 
 
 @dataclass

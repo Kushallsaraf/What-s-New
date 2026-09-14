@@ -29,6 +29,16 @@ DEFAULT_FEEDS: tuple[tuple[str, str], ...] = (
     ("EIA Today in Energy", "https://www.eia.gov/rss/todayinenergy.xml"),
     ("CNBC Energy", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=19836768"),
     ("CNBC Health", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000108"),
+    # World news. Most market-moving events — tariffs, sanctions, conflict,
+    # elections, shipping disruption — are reported here first and name no
+    # company at all, so these only became useful once ingest/themes.py could
+    # route an untickered story to an affected sector.
+    ("BBC World", "https://feeds.bbci.co.uk/news/world/rss.xml"),
+    ("BBC Business", "https://feeds.bbci.co.uk/news/business/rss.xml"),
+    ("Guardian World", "https://www.theguardian.com/world/rss"),
+    ("Al Jazeera", "https://www.aljazeera.com/xml/rss/all.xml"),
+    ("UN News", "https://news.un.org/feed/subscribe/en/news/all/rss.xml"),
+    ("CNBC World", "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362"),
 )
 
 
