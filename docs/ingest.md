@@ -138,6 +138,24 @@ raising a `BaseException` from `db._connect` — an ordinary `Exception` would
 be swallowed by the job's own error handling and the run would still look
 green.
 
+## What reaches the card
+
+Each ticker on a feed card carries `proxy`, set from what the cluster's
+articles actually named:
+
+| | Example | Card says |
+| --- | --- | --- |
+| named | "Exxon Mobil weighs a new refinery" → XOM | Affected tickers |
+| proxy | "OPEC holds output steady" → XLE, USO | Sector exposure |
+| both | "...lawsuit against Apple" → AAPL, XLK, XLC | Affected tickers, proxies set in regular weight |
+
+The card also carries `themes` as `{key, label}` pairs, so the client never
+keeps its own copy of the taxonomy and a theme renamed here renames there.
+
+The mixed case is the one that matters. Rendering AAPL and XLK identically
+claims the article mentioned both; it mentioned one. Two of 36 events in a
+live run were mixed.
+
 ## Known gaps
 
 - **The LLM stage has not been exercised on real output.** Without

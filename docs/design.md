@@ -117,4 +117,5 @@ products look different — but that should be a decision, not a leftover.
   quieter; it did not make them true.
 - **`bps` is applied to non-rate rows.** WTI crude renders "+20 bps", which
   is not a unit that applies to a commodity price.
-- **The app knows 14 tickers; the pipeline tracks 146.**
+- **The app knows 30 tickers; the pipeline tracks 146.** Explore still carries
+  its own universe rather than reading `/api/assets`.
