@@ -5,7 +5,7 @@ import { Info, User } from 'lucide-react-native';
 import { ChoiceChip, ScreenHeader, Section, Toggle } from '../components/Ui';
 import { sectors } from '../data';
 import { signInWithPassword, signOut, signUp } from '../services/auth';
-import { colors, fonts, hitSlop } from '../theme';
+import { colors, fonts, hitSlop, radius } from '../theme';
 
 export type NotificationSettings = {
   morning: boolean;
@@ -96,7 +96,7 @@ export function ProfileScreen({
 
       <View style={styles.profileCard}>
         <View style={styles.profileAvatar}>
-          <User size={20} color={colors.brand} />
+          <User size={20} color={colors.textDim} />
         </View>
         <View style={styles.profileCopy}>
           <Text style={styles.profileTitle}>{authEmail || 'Your research feed'}</Text>
@@ -195,7 +195,7 @@ export function ProfileScreen({
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 112, paddingHorizontal: 16, paddingTop: 14 },
   watchlistRows: { gap: 8, marginBottom: 24, marginTop: 14 },
-  watchRow: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12 },
+  watchRow: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 12 },
   watchCopy: { flex: 1 },
   watchTicker: { color: colors.text, fontFamily: fonts.monoSemiBold, fontSize: 14 },
   watchName: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 2 },
@@ -205,29 +205,29 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 12, letterSpacing: 0.6, marginBottom: 10, textTransform: 'uppercase' },
   empty: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 13, padding: 30, textAlign: 'center' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  profileCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: 'row', gap: 12, marginBottom: 22, marginTop: 14, padding: 14 },
-  profileAvatar: { alignItems: 'center', backgroundColor: colors.brandDim, borderRadius: 23, height: 46, justifyContent: 'center', width: 46 },
+  profileCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: 12, marginBottom: 22, marginTop: 14, padding: 14 },
+  profileAvatar: { alignItems: 'center', backgroundColor: colors.surfaceHi, borderRadius: radius.md, height: 44, justifyContent: 'center', width: 44 },
   profileCopy: { flex: 1 },
   profileTitle: { color: colors.text, fontFamily: fonts.bold, fontSize: 14 },
   profileSubtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11.5, marginTop: 2 },
   helpText: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, lineHeight: 16, marginTop: 8 },
-  settingsCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, paddingHorizontal: 13 },
-  settingStandalone: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', padding: 13 },
+  settingsCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 13 },
+  settingStandalone: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', padding: 13 },
   settingRow: { alignItems: 'center', flexDirection: 'row', minHeight: 66, paddingVertical: 10 },
   settingCopy: { flex: 1, paddingRight: 12 },
   settingTitle: { color: colors.text, fontFamily: fonts.semiBold, fontSize: 13 },
   settingSubtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16, marginTop: 2 },
   divider: { backgroundColor: colors.border, height: 1 },
-  infoCard: { alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 10, padding: 13 },
+  infoCard: { alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: 10, padding: 13 },
   infoIcon: { marginTop: 1 },
   infoText: { color: colors.textFaint, flex: 1, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 17.5 },
   disclaimer: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 8, textAlign: 'center' },
   pressed: { opacity: 0.72 },
-  authCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, gap: 10, padding: 13 },
+  authCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, gap: 10, padding: 13 },
   input: {
     backgroundColor: colors.bgElevated,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
     color: colors.text,
     fontFamily: fonts.regular,
@@ -238,8 +238,8 @@ const styles = StyleSheet.create({
   authRow: { flexDirection: 'row', gap: 8 },
   authButton: {
     alignItems: 'center',
-    backgroundColor: colors.brand,
-    borderRadius: 10,
+    backgroundColor: colors.text,
+    borderRadius: radius.md,
     flex: 1,
     paddingVertical: 10,
   },
@@ -247,11 +247,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.surfaceHi,
     borderColor: colors.border,
-    borderRadius: 10,
+    borderRadius: radius.md,
     borderWidth: 1,
     flex: 1,
     paddingVertical: 10,
   },
-  authButtonText: { color: colors.white, fontFamily: fonts.bold, fontSize: 13 },
+  authButtonText: { color: colors.bg, fontFamily: fonts.bold, fontSize: 13 },
   authButtonTextSecondary: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
 });

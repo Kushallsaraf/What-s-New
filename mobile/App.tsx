@@ -205,7 +205,7 @@ function BottomNavigation({ tab, onChange, bottomInset }: { tab: AppTab; onChang
             onPress={() => onChange(id)}
             style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
           >
-            <Icon size={19} color={active ? colors.brand : colors.textFaint} strokeWidth={active ? 2.4 : 2} />
+            <Icon size={19} color={active ? colors.text : colors.textFaint} strokeWidth={active ? 2.2 : 1.8} />
             <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
           </Pressable>
         );
@@ -248,6 +248,6 @@ const styles = StyleSheet.create({
   bottomNav: { backgroundColor: colors.bgElevated, borderTopColor: colors.border, borderTopWidth: 1, bottom: 0, flexDirection: 'row', left: 0, position: 'absolute', right: 0, zIndex: 20 },
   navItem: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'center' },
   navLabel: { color: colors.textFaint, fontFamily: fonts.medium, fontSize: 9.5 },
-  navLabelActive: { color: colors.brand, fontFamily: fonts.bold },
+  navLabelActive: { color: colors.text, fontFamily: fonts.bold },
   pressed: { opacity: 0.7 },
 });

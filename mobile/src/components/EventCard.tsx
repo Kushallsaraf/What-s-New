@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Star } from 'lucide-react-native';
 
 import { eventPayloadOf, feedEventToNewsItem, timeAgo } from '../feedMap';
-import { colors, fonts, hitSlop } from '../theme';
+import { colors, fonts, hitSlop, radius, tabular } from '../theme';
 import type { FeedItem, NewsItem, Sentiment } from '../types';
 import { ImpactTag, SentimentBadge } from './Ui';
 
@@ -87,7 +87,7 @@ export function EventCard({ item, watchlist, showMeme = false, onOpen, onToggleW
                   pressed && styles.pressed,
                 ]}
               >
-                {watching ? <Star size={11} color={colors.amber} fill={colors.amber} /> : null}
+                {watching ? <Star size={10} color={colors.text} fill={colors.text} /> : null}
                 <Text style={[styles.tickerText, { color: directionColor(entry.direction) }]}>
                   {entry.ticker}
                 </Text>
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
-    borderRadius: 16,
+    borderRadius: radius.lg,
     borderWidth: 1,
     marginBottom: 12,
     overflow: 'hidden',
@@ -124,12 +124,12 @@ const styles = StyleSheet.create({
   body: { padding: 16, paddingBottom: 12 },
   pressed: { opacity: 0.78 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 8, marginBottom: 9 },
-  metaText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 },
+  metaText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 , ...tabular },
   breakingTag: {
-    color: colors.amber,
+    color: colors.text,
     fontFamily: fonts.monoBold,
-    fontSize: 10,
-    letterSpacing: 0.6,
+    fontSize: 9.5,
+    letterSpacing: 1.1,
   },
   headline: { color: colors.text, fontFamily: fonts.bold, fontSize: 16, lineHeight: 21.5 },
   summary: {
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
   meme: {
-    color: colors.amber,
+    color: colors.textFaint,
     fontFamily: fonts.regular,
     fontSize: 11.5,
     fontStyle: 'italic',
@@ -164,16 +164,16 @@ const styles = StyleSheet.create({
   tickerChip: {
     alignItems: 'center',
     borderColor: 'transparent',
-    borderRadius: 8,
+    borderRadius: radius.sm,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 5,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
-  tickerChipWatched: { borderColor: colors.amber },
+  tickerChipWatched: { borderColor: colors.borderHi },
   tickerText: { fontFamily: fonts.monoBold, fontSize: 12 },
-  tickerScore: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 },
+  tickerScore: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 , ...tabular },
   footer: {
     alignItems: 'center',
     backgroundColor: colors.bgElevated,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  footerText: { color: colors.textDim, fontFamily: fonts.monoSemiBold, fontSize: 11 },
+  footerText: { color: colors.textDim, fontFamily: fonts.monoSemiBold, fontSize: 11 , ...tabular },
   footerHorizon: {
     color: colors.textFaint,
     flex: 1,

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Bell, ChevronRight } from 'lucide-react-native';
 
-import { colors, fonts } from '../theme';
+import { colors, fonts, radius, tabular } from '../theme';
 import type { Briefing, FeedItem, NewsItem, Sentiment } from '../types';
 import { EventCard } from '../components/EventCard';
 import { OutcomeCard, PredictionCard, ReportFeedCard, SectorCard } from '../components/FeedCards';
@@ -176,20 +176,20 @@ const styles = StyleSheet.create({
   bellWrap: { marginRight: 3, position: 'relative' },
   liveBesideTitle: { left: 143, position: 'absolute', top: 21 },
   noPointerEvents: { pointerEvents: 'none' },
-  briefingCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginTop: 16, padding: 16 },
+  briefingCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, marginTop: 16, padding: 16 },
   briefingTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
-  briefingEyebrow: { color: colors.brand, fontFamily: fonts.extraBold, fontSize: 10, letterSpacing: 0.7 },
-  briefingConfidence: { color: colors.textFaint, fontFamily: fonts.monoSemiBold, fontSize: 10 },
+  briefingEyebrow: { color: colors.textDim, fontFamily: fonts.monoBold, fontSize: 9.5, letterSpacing: 1.1 },
+  briefingConfidence: { color: colors.textFaint, fontFamily: fonts.monoSemiBold, fontSize: 10 , ...tabular },
   briefingTitle: { color: colors.text, fontFamily: fonts.extraBold, fontSize: 16, lineHeight: 21, marginBottom: 8 },
   briefingSummary: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18.5, marginBottom: 11 },
   briefingDivider: { backgroundColor: colors.border, height: 1, marginVertical: 11 },
   briefingPoint: { alignItems: 'flex-start', flexDirection: 'row', gap: 6, marginBottom: 6 },
   briefingPointText: { color: colors.textFaint, flex: 1, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16 },
-  quietBox: { backgroundColor: colors.surfaceHi, borderColor: colors.border, borderRadius: 12, borderWidth: 1, marginTop: 14, padding: 12 },
-  quietTitle: { color: colors.amber, fontFamily: fonts.bold, fontSize: 12, marginBottom: 4 },
+  quietBox: { backgroundColor: colors.surfaceHi, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, marginTop: 14, padding: 12 },
+  quietTitle: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 12, marginBottom: 4 },
   quietText: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17 },
   personalized: { marginTop: 16 },
-  personalizedLabel: { color: colors.brand, fontFamily: fonts.bold, fontSize: 11.5, marginBottom: 6 },
+  personalizedLabel: { color: colors.textFaint, fontFamily: fonts.semiBold, fontSize: 10.5, letterSpacing: 0.4, marginBottom: 7, textTransform: 'uppercase' },
   filters: { gap: 8, paddingBottom: 6, paddingTop: 10 },
   feed: { marginTop: 10 },
   emptyFeed: {

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts } from '../theme';
+import { colors, fonts, radius, tabular } from '../theme';
 import type { FeedItem } from '../types';
 
 type Props = { item: FeedItem };
@@ -77,7 +77,7 @@ export function ReportFeedCard({ item }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: radius.md,
     padding: 14,
     marginBottom: 12,
     borderWidth: 1,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   movers: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6 },
-  mover: { fontFamily: fonts.mono, fontSize: 12, color: colors.textDim },
+  mover: { fontFamily: fonts.mono, fontSize: 12, color: colors.textDim , ...tabular },
   ok: { color: colors.bull },
   bad: { color: colors.bear },
 });
