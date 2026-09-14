@@ -17,9 +17,12 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     from whats_new import db
     from whats_new.config import get_settings
     from whats_new.ingest import (
+        analysis_tickers,
+        article_hash,
         cluster_articles,
         enrich_article,
         filter_new_articles,
+        is_analysable,
         is_important,
         score_article,
     )
@@ -31,12 +34,20 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
 
     settings = get_settings()
     telemetry = get_telemetry()
+
+    # dry_run exercises the whole pipeline — fetch, enrich, theme-route, score,
+    # cluster, analyse — and stops before persistence, so the ingest path can be
+    # developed and reviewed before Supabase exists. Same code path either way.
+    dry_run = bool(payload.get("dry_run"))
+    preview: list[dict[str, Any]] = []
+
     job_id = ""
-    try:
-        db.seed_universe()
-        job_id = db.start_job_run("news_ingest", payload)
-    except Exception as exc:
-        telemetry.error("news_ingest_db_unavailable", exc=exc)
+    if not dry_run:
+        try:
+            db.seed_universe()
+            job_id = db.start_job_run("news_ingest", payload)
+        except Exception as exc:
+            telemetry.error("news_ingest_db_unavailable", exc=exc)
 
     since_hours = int(payload.get("since_hours") or 36)
     since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
@@ -49,7 +60,18 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             telemetry.error("news_source_failed", exc=exc, source=getattr(source, "name", "?"))
 
     enriched = [enrich_article(a) for a in raw_articles]
-    new_items = filter_new_articles(enriched)
+    if dry_run:
+        # filter_new_articles dedupes against news_articles; with no database
+        # the best available is dedupe within this batch.
+        seen: set[str] = set()
+        new_items = []
+        for a in enriched:
+            h = article_hash(a)
+            if h not in seen:
+                seen.add(h)
+                new_items.append((a, h))
+    else:
+        new_items = filter_new_articles(enriched)
     rows_in = len(raw_articles)
     stored = 0
     analyzed = 0
@@ -61,32 +83,36 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     important_articles = []
     for article, content_hash in new_items:
         rel = score_article(article)
-        try:
-            db.execute(
-                """
-                INSERT INTO news_articles
-                  (title, source, url, published_at, processed_at, content_hash,
-                   raw_json, relevance_score, summary, tickers)
-                VALUES (%s, %s, %s, %s, now(), %s, %s::jsonb, %s, %s, %s)
-                ON CONFLICT (content_hash) DO NOTHING
-                """,
-                (
-                    article.title,
-                    article.source,
-                    article.url,
-                    article.published_at,
-                    content_hash,
-                    db.to_jsonb(article.raw),
-                    rel,
-                    article.summary[:2000],
-                    article.tickers,
-                ),
-            )
-            stored += 1
-        except Exception as exc:
-            telemetry.error("news_article_insert_failed", exc=exc)
-            continue
-        if is_important(article) and article.tickers:
+        if not dry_run:
+            try:
+                db.execute(
+                    """
+                    INSERT INTO news_articles
+                      (title, source, url, published_at, processed_at, content_hash,
+                       raw_json, relevance_score, summary, tickers)
+                    VALUES (%s, %s, %s, %s, now(), %s, %s::jsonb, %s, %s, %s)
+                    ON CONFLICT (content_hash) DO NOTHING
+                    """,
+                    (
+                        article.title,
+                        article.source,
+                        article.url,
+                        article.published_at,
+                        content_hash,
+                        db.to_jsonb(article.raw),
+                        rel,
+                        article.summary[:2000],
+                        article.tickers,
+                    ),
+                )
+                stored += 1
+            except Exception as exc:
+                # A failed row must not also drop the article from analysis.
+                telemetry.error("news_article_insert_failed", exc=exc)
+        if is_important(article) and is_analysable(article):
+            # Clustering and analysis need something to attach to. For a macro
+            # or world story that is the theme proxy rather than a company.
+            article.tickers = analysis_tickers(article)
             important_articles.append(article)
 
     clusters = cluster_articles(important_articles)
@@ -109,6 +135,59 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
                 analyzed += 1
         else:
             result = heuristic_analysis(cluster, importance_guess)
+
+        impacts = result.impacts or [
+            {
+                "ticker": t,
+                "direction": result.direction.get(t, "neutral"),
+                "impact_score": result.importance,
+                "confidence": result.confidence,
+                "reason": result.reasoning_summary,
+            }
+            for t in result.tickers
+        ]
+        payload_card = {
+            "headline": result.event,
+            "summary": result.reasoning_summary,
+            "impact": "High" if result.importance >= 0.75 else "Medium" if result.importance >= 0.45 else "Low",
+            "sentiment": _direction_label(
+                next(iter(result.direction.values()), "neutral")
+            ),
+            "confidence": int(round(result.confidence * 100)),
+            "tickers": [
+                {
+                    "ticker": i.get("ticker"),
+                    "direction": _direction_label(str(i.get("direction") or "neutral")),
+                    "score": int(round(float(i.get("impact_score") or 0) * 100)),
+                }
+                for i in impacts
+            ],
+            "bull_case": result.bull_case,
+            "bear_case": result.bear_case,
+            "risks": result.risks,
+            "sources": [
+                {"label": a.source, "url": a.url, "type": "company"}
+                for a in cluster.articles
+                if a.url
+            ][:5],
+            "time_horizon": result.time_horizon,
+        }
+        section = "breaking" if result.importance >= 0.8 else "recent"
+
+        if dry_run:
+            # Everything above is the real pipeline; only persistence is skipped.
+            preview.append(
+                {
+                    "section": section,
+                    "importance": round(result.importance, 3),
+                    "cluster_key": cluster.cluster_key,
+                    "source_count": cluster.source_count,
+                    "themes": sorted({t for a in cluster.articles for t in a.themes}),
+                    "model": result.llm_model or "heuristic",
+                    "payload": payload_card,
+                }
+            )
+            continue
 
         # Ensure tickers exist in stocks
         for t in result.tickers:
@@ -148,16 +227,6 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             continue
         event_id = event_row["id"]
 
-        impacts = result.impacts or [
-            {
-                "ticker": t,
-                "direction": result.direction.get(t, "neutral"),
-                "impact_score": result.importance,
-                "confidence": result.confidence,
-                "reason": result.reasoning_summary,
-            }
-            for t in result.tickers
-        ]
         for impact in impacts:
             ticker = str(impact.get("ticker") or "").upper()
             if not ticker or not get_stock(ticker):
@@ -192,43 +261,12 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
                 "UPDATE news_articles SET event_id = %s WHERE content_hash = ANY(%s)",
                 (
                     event_id,
-                    [
-                        __import__("whats_new.ingest.dedupe", fromlist=["article_hash"]).article_hash(a)
-                        for a in cluster.articles
-                    ],
+                    [article_hash(a) for a in cluster.articles],
                 ),
             )
         except Exception:
             pass
 
-        # Feed card
-        payload_card = {
-            "headline": result.event,
-            "summary": result.reasoning_summary,
-            "impact": "High" if result.importance >= 0.75 else "Medium" if result.importance >= 0.45 else "Low",
-            "sentiment": _direction_label(
-                next(iter(result.direction.values()), "neutral")
-            ),
-            "confidence": int(round(result.confidence * 100)),
-            "tickers": [
-                {
-                    "ticker": i.get("ticker"),
-                    "direction": _direction_label(str(i.get("direction") or "neutral")),
-                    "score": int(round(float(i.get("impact_score") or 0) * 100)),
-                }
-                for i in impacts
-            ],
-            "bull_case": result.bull_case,
-            "bear_case": result.bear_case,
-            "risks": result.risks,
-            "sources": [
-                {"label": a.source, "url": a.url, "type": "company"}
-                for a in cluster.articles
-                if a.url
-            ][:5],
-            "time_horizon": result.time_horizon,
-        }
-        section = "breaking" if result.importance >= 0.8 else "recent"
         try:
             db.execute(
                 """
@@ -248,20 +286,21 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         except Exception as exc:
             telemetry.error("feed_item_insert_failed", exc=exc)
 
-    try:
-        db.finish_job_run(
-            job_id,
-            status="ok",
-            rows_in=rows_in,
-            rows_out=stored,
-            llm_tokens=tokens,
-            estimated_cost_usd=cost,
-            meta={"clusters": len(clusters), "analyzed": analyzed},
-        )
-    except Exception:
-        pass
+    if not dry_run:
+        try:
+            db.finish_job_run(
+                job_id,
+                status="ok",
+                rows_in=rows_in,
+                rows_out=stored,
+                llm_tokens=tokens,
+                estimated_cost_usd=cost,
+                meta={"clusters": len(clusters), "analyzed": analyzed},
+            )
+        except Exception:
+            pass
 
-    return {
+    summary = {
         "status": "ok",
         "rows_in": rows_in,
         "rows_out": stored,
@@ -269,3 +308,14 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         "analyzed": analyzed,
         "cost_usd": cost,
     }
+    if dry_run:
+        # Nothing was written, so report what the funnel did instead of row counts.
+        summary.update(
+            {
+                "dry_run": True,
+                "articles_new": len(new_items),
+                "articles_analysable": len(important_articles),
+                "events": preview,
+            }
+        )
+    return summary

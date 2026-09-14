@@ -26,15 +26,25 @@ CIK_BY_TICKER: dict[str, str] = {
 class SecEdgarNewsSource:
     name = "sec_edgar"
 
-    def __init__(self, user_agent: str | None = None, tickers: list[str] | None = None) -> None:
+    def __init__(
+        self,
+        user_agent: str | None = None,
+        tickers: list[str] | None = None,
+        timeout: float = 10.0,
+    ) -> None:
         from whats_new.config import get_settings
 
         settings = get_settings()
         self.user_agent = user_agent or settings.sec_user_agent
         self.tickers = tickers or list(CIK_BY_TICKER.keys())
+        self.timeout = timeout
 
     def fetch_since(self, since: datetime | None = None) -> list[RawArticle]:
+        from whats_new.ports import get_telemetry
+
+        telemetry = get_telemetry()
         articles: list[RawArticle] = []
+        failures = 0
         for ticker in self.tickers:
             cik = CIK_BY_TICKER.get(ticker)
             if not cik:
@@ -45,8 +55,17 @@ class SecEdgarNewsSource:
                     url,
                     headers={"User-Agent": self.user_agent, "Accept-Encoding": "gzip, deflate"},
                     fixture_name=f"sec_{ticker}",
+                    timeout=self.timeout,
                 )
-            except Exception:
+            except Exception as exc:
+                # data.sec.gov fails as a host, not per filer: an unset
+                # SEC_USER_AGENT, a rate limit or a DNS block hits every
+                # request alike. Retrying all ten costs minutes and returns
+                # nothing, so stop after the second failure.
+                failures += 1
+                if failures >= 2:
+                    telemetry.error("sec_source_unreachable", exc=exc, tried=failures)
+                    break
                 continue
             recent = (payload.get("filings") or {}).get("recent") or {}
             forms = recent.get("form") or []

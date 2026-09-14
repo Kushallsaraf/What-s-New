@@ -28,8 +28,10 @@ class StdoutJsonTelemetry:
             "message": message,
             **fields,
         }
-        sys.stdout.write(json.dumps(record, default=str) + "\n")
-        sys.stdout.flush()
+        # stderr, so a job's structured logs never interleave with the result
+        # a caller is parsing off stdout.
+        sys.stderr.write(json.dumps(record, default=str) + "\n")
+        sys.stderr.flush()
 
     def info(self, message: str, **fields: Any) -> None:
         self._emit("info", message, **fields)
