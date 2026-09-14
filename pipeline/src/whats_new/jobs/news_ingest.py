@@ -154,6 +154,13 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             }
             for t in result.tickers
         ]
+        # Which of these tickers the stories actually named. The rest are
+        # theme proxies the pipeline routed to, and a card that presents the
+        # two identically is claiming the article mentioned XLF when it did
+        # not. `proxy_tickers` survives the merge in analysis_tickers, so the
+        # distinction is still recoverable here.
+        named = {t for a in cluster.articles for t in a.tickers if t not in a.proxy_tickers}
+
         payload_card = {
             "headline": result.event,
             "summary": result.reasoning_summary,
@@ -167,6 +174,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
                     "ticker": i.get("ticker"),
                     "direction": _direction_label(str(i.get("direction") or "neutral")),
                     "score": int(round(float(i.get("impact_score") or 0) * 100)),
+                    "proxy": str(i.get("ticker") or "").upper() not in named,
                 }
                 for i in impacts
             ],

@@ -41,11 +41,12 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
 
   const tickers: EventTicker[] = rawTickers
     .map((entry) => {
-      const t = entry as { ticker?: string; direction?: string; score?: number };
+      const t = entry as { ticker?: string; direction?: string; score?: number; proxy?: boolean };
       return {
         ticker: String(t.ticker || ''),
         direction: asSentiment(t.direction),
         score: typeof t.score === 'number' ? t.score : 0,
+        proxy: Boolean(t.proxy),
       };
     })
     .filter((t) => t.ticker)
@@ -72,7 +73,14 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
     sentiment: asSentiment(p.sentiment ?? tickers[0]?.direction),
     confidence:
       typeof p.confidence === 'number' ? p.confidence : Math.round((item.confidence || 0) * 100),
-    tickers: tickers.length ? tickers : item.tickers.map((t) => ({ ticker: t, direction: 'neutral' as Sentiment, score: 0 })),
+    tickers: tickers.length
+      ? tickers
+      : item.tickers.map((t) => ({
+          ticker: t,
+          direction: 'neutral' as Sentiment,
+          score: 0,
+          proxy: false,
+        })),
     bull_case: String(p.bull_case || ''),
     bear_case: String(p.bear_case || ''),
     risks: String(p.risks || ''),

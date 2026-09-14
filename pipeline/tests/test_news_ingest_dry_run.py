@@ -146,3 +146,36 @@ def test_dry_run_writes_a_preview_file(no_database, no_llm, articles, tmp_path):
     assert result["out"] == str(out)
     rows = json.loads(out.read_text(encoding="utf-8"))
     assert rows == json.loads(json.dumps(result["events"], default=str))
+
+
+def test_cards_mark_which_tickers_were_named_and_which_are_proxies(no_database, no_llm, articles):
+    """A card that presents XLF the same way as a company the article named is
+    claiming evidence it does not have."""
+    result = run({"dry_run": True})
+
+    entries = [t for e in result["events"] for t in e["payload"]["tickers"]]
+    assert entries
+    assert all("proxy" in t for t in entries)
+    # Both stub stories are macro and name no company, so every ticker on them
+    # is a routed proxy.
+    assert all(t["proxy"] for t in entries)
+
+
+def test_a_named_company_is_not_marked_as_a_proxy(no_database, no_llm, monkeypatch):
+    import whats_new.sources as sources
+
+    rows = [
+        RawArticle(
+            title="Exxon Mobil weighs a new refinery as crude oil prices climb",
+            source="Test Wire",
+            url="https://example.invalid/xom",
+            summary="The company is reviewing Gulf Coast capacity.",
+            published_at=datetime.now(timezone.utc),
+        )
+    ]
+    monkeypatch.setattr(sources, "build_news_sources", lambda *a, **k: [StubSource(rows)])
+
+    result = run({"dry_run": True})
+    by_ticker = {t["ticker"]: t for e in result["events"] for t in e["payload"]["tickers"]}
+    assert by_ticker["XOM"]["proxy"] is False
+    assert by_ticker["XLE"]["proxy"] is True

@@ -65,6 +65,9 @@ export type EventTicker = {
   ticker: string;
   direction: Sentiment;
   score: number;
+  /** True when a market theme routed the event here rather than the story
+   *  naming this instrument. A proxy is where to look, not a reference. */
+  proxy: boolean;
 };
 
 /**

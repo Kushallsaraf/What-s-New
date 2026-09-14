@@ -43,9 +43,13 @@ export function EventCard({ item, watchlist, showMeme = false, onOpen, onToggleW
   // When a story names no company, the tickers below are liquid sector
   // proxies the pipeline routed to, not instruments the article mentioned.
   // Saying so is the difference between evidence and a suggestion.
+  // A card can carry both: a story that names Exxon and also reads as an
+  // energy story gets XOM and XLE. Only call the whole set sector exposure
+  // when nothing in it was actually named.
   const routed = payload.themes.length > 0;
   const count = payload.tickers.length;
-  const tickerLabel = routed
+  const allProxies = count > 0 && payload.tickers.every((t) => t.proxy);
+  const tickerLabel = allProxies
     ? `Sector exposure${count > 1 ? ` · ${count}` : ''}`
     : `Affected ticker${count === 1 ? '' : `s · ${count}`}`;
 
@@ -100,7 +104,12 @@ export function EventCard({ item, watchlist, showMeme = false, onOpen, onToggleW
                 ]}
               >
                 {watching ? <Star size={10} color={colors.text} fill={colors.text} /> : null}
-                <Text style={[styles.tickerText, { color: directionColor(entry.direction) }]}>
+                <Text
+                  style={[
+                    entry.proxy ? styles.tickerTextProxy : styles.tickerText,
+                    { color: directionColor(entry.direction) },
+                  ]}
+                >
                   {entry.ticker}
                 </Text>
                 {entry.score > 0 ? <Text style={styles.tickerScore}>{entry.score}</Text> : null}
@@ -193,6 +202,9 @@ const styles = StyleSheet.create({
   },
   tickerChipWatched: { borderColor: colors.borderHi },
   tickerText: { fontFamily: fonts.monoBold, fontSize: 12 },
+  // A proxy is set in regular weight, so a named company reads as the
+  // stronger claim without spending a colour on the distinction.
+  tickerTextProxy: { fontFamily: fonts.mono, fontSize: 12 },
   tickerScore: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 11 , ...tabular },
   footer: {
     alignItems: 'center',
