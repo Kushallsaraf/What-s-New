@@ -115,8 +115,8 @@ python -m whats_new.jobs run news_ingest --dry-run --since-hours 24
 ```
 
 Everything above runs. Only persistence is skipped. The result is JSON on
-stdout — structured logs go to stderr — containing the feed cards the app
-would have received and the themes that routed each one:
+stdout — structured logs go to stderr — and each event is a row in the same
+shape `/api/feed` returns from `feed_items`:
 
 ```json
 {
@@ -125,9 +125,14 @@ would have received and the themes that routed each one:
   "clusters": 37, "analyzed": 0, "cost_usd": 0.0,
   "events": [
     {
-      "section": "breaking", "importance": 0.97,
-      "themes": ["monetary_policy"],
-      "payload": { "headline": "...", "tickers": [{"ticker": "TLT", "...": "..."}] }
+      "id": "34f0...", "card_type": "event",
+      "section": "breaking", "importance": 0.97, "confidence": 0.35,
+      "created_at": "2026-09-14T18:40:00+00:00",
+      "payload": {
+        "headline": "...",
+        "themes": [{ "key": "monetary_policy", "label": "Monetary policy" }],
+        "tickers": [{ "ticker": "TLT", "direction": "neutral", "score": 97, "proxy": true }]
+      }
     }
   ]
 }
@@ -137,6 +142,21 @@ would have received and the themes that routed each one:
 raising a `BaseException` from `db._connect` — an ordinary `Exception` would
 be swallowed by the job's own error handling and the run would still look
 green.
+
+### Serving it to the app
+
+Because the rows already match the feed shape, the API can serve them:
+
+```bash
+python -m whats_new.jobs run news_ingest --dry-run --out preview.json
+WN_FEED_PREVIEW_FILE=preview.json uvicorn whats_new.api.main:app --port 8000
+EXPO_PUBLIC_RESEARCH_API_URL=http://localhost:8000 npx expo start --web
+```
+
+`WN_FEED_PREVIEW_FILE` is opt-in, only consulted when the database is
+unreachable, and every response it produces is flagged `preview` with a
+message saying so. **Leave it unset anywhere a user can reach.** When
+Supabase arrives, drop the variable — the route already prefers the database.
 
 ## What reaches the card
 
