@@ -1,9 +1,11 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Info, StarOff, User } from 'lucide-react-native';
 
 import { NewsCard } from '../components/NewsCard';
 import { ChangePill, ChoiceChip, ScreenHeader, Section, Toggle } from '../components/Ui';
 import { sectors, stocks } from '../data';
+import { signInWithPassword, signOut, signUp } from '../services/auth';
 import { colors, fonts, hitSlop } from '../theme';
 import type { NewsItem, Quote } from '../types';
 
@@ -86,15 +88,62 @@ function SettingRow({ title, subtitle, value, onToggle }: { title: string; subti
   );
 }
 
-export function ProfileScreen({ preferences, onTogglePreference, showMemes, onToggleMemes, notifications, onToggleNotification }: {
+export function ProfileScreen({
+  preferences,
+  onTogglePreference,
+  showMemes,
+  onToggleMemes,
+  notifications,
+  onToggleNotification,
+  authEmail = null,
+  authConfigured = false,
+}: {
   preferences: string[];
   onTogglePreference: (item: string) => void;
   showMemes: boolean;
   onToggleMemes: () => void;
   notifications: NotificationSettings;
   onToggleNotification: (key: keyof NotificationSettings) => void;
+  authEmail?: string | null;
+  authConfigured?: boolean;
 }) {
   const interests = [...sectors, 'Macro'];
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function handleSignIn() {
+    setBusy(true);
+    setAuthMessage(null);
+    try {
+      const { error } = await signInWithPassword(email.trim(), password);
+      setAuthMessage(error ? error.message : 'Signed in');
+    } catch (err) {
+      setAuthMessage(err instanceof Error ? err.message : 'Sign-in failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSignUp() {
+    setBusy(true);
+    setAuthMessage(null);
+    try {
+      const { error } = await signUp(email.trim(), password);
+      setAuthMessage(error ? error.message : 'Check your email to confirm, then sign in.');
+    } catch (err) {
+      setAuthMessage(err instanceof Error ? err.message : 'Sign-up failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSignOut() {
+    await signOut();
+    setAuthMessage('Signed out');
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
       <ScreenHeader title="Profile" subtitle="Control relevance and alert cadence" />
@@ -104,10 +153,57 @@ export function ProfileScreen({ preferences, onTogglePreference, showMemes, onTo
           <User size={20} color={colors.brand} />
         </View>
         <View style={styles.profileCopy}>
-          <Text style={styles.profileTitle}>Your research feed</Text>
-          <Text style={styles.profileSubtitle}>Personalized · {preferences.length} interests selected</Text>
+          <Text style={styles.profileTitle}>{authEmail || 'Your research feed'}</Text>
+          <Text style={styles.profileSubtitle}>
+            {authEmail ? 'Synced watchlist via Supabase Auth' : `Personalized · ${preferences.length} interests selected`}
+          </Text>
         </View>
       </View>
+
+      <Section title="Account">
+        {authConfigured ? (
+          <View style={styles.authCard}>
+            {authEmail ? (
+              <Pressable onPress={() => void handleSignOut()} style={({ pressed }) => [styles.authButton, pressed && styles.pressed]}>
+                <Text style={styles.authButtonText}>Sign out</Text>
+              </Pressable>
+            ) : (
+              <>
+                <TextInput
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholder="Email"
+                  placeholderTextColor={colors.textFaint}
+                  style={styles.input}
+                  value={email}
+                  onChangeText={setEmail}
+                />
+                <TextInput
+                  secureTextEntry
+                  placeholder="Password"
+                  placeholderTextColor={colors.textFaint}
+                  style={styles.input}
+                  value={password}
+                  onChangeText={setPassword}
+                />
+                <View style={styles.authRow}>
+                  <Pressable disabled={busy} onPress={() => void handleSignIn()} style={({ pressed }) => [styles.authButton, pressed && styles.pressed]}>
+                    <Text style={styles.authButtonText}>Sign in</Text>
+                  </Pressable>
+                  <Pressable disabled={busy} onPress={() => void handleSignUp()} style={({ pressed }) => [styles.authButtonSecondary, pressed && styles.pressed]}>
+                    <Text style={styles.authButtonTextSecondary}>Sign up</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
+            {authMessage ? <Text style={styles.helpText}>{authMessage}</Text> : null}
+          </View>
+        ) : (
+          <Text style={styles.helpText}>
+            Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY to enable account sync. Watchlist stays on-device until then.
+          </Text>
+        )}
+      </Section>
 
       <Section title="What are you interested in?">
         <PreferenceGrid items={interests} selected={preferences} onToggle={onTogglePreference} />
@@ -140,7 +236,7 @@ export function ProfileScreen({ preferences, onTogglePreference, showMemes, onTo
         <View style={styles.infoCard}>
           <Info size={15} color={colors.textFaint} style={styles.infoIcon} />
           <Text style={styles.infoText}>
-            The MVP is designed for free and delayed sources: SEC EDGAR, FRED, U.S. Treasury, BLS, EIA, company investor-relations feeds, and permitted market data. Heavy ingestion and model tests run off-device. Kronos Mini/Small stays disabled unless zero-shot rolling tests consistently beat simple baselines; it never runs on the phone.
+            Live mode uses Alpaca Basic (IEX/delayed), SEC EDGAR, RSS, and Finnhub free news through the FastAPI pipeline. Kronos weight stays 0 until the retention gate passes; inference never runs on the phone. Point EXPO_PUBLIC_RESEARCH_API_URL at the API for live feed cards.
           </Text>
         </View>
       </Section>
@@ -181,4 +277,35 @@ const styles = StyleSheet.create({
   infoText: { color: colors.textFaint, flex: 1, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 17.5 },
   disclaimer: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 8, textAlign: 'center' },
   pressed: { opacity: 0.72 },
+  authCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, gap: 10, padding: 13 },
+  input: {
+    backgroundColor: colors.bgElevated,
+    borderColor: colors.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    color: colors.text,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  authRow: { flexDirection: 'row', gap: 8 },
+  authButton: {
+    alignItems: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 10,
+    flex: 1,
+    paddingVertical: 10,
+  },
+  authButtonSecondary: {
+    alignItems: 'center',
+    backgroundColor: colors.surfaceHi,
+    borderColor: colors.border,
+    borderRadius: 10,
+    borderWidth: 1,
+    flex: 1,
+    paddingVertical: 10,
+  },
+  authButtonText: { color: colors.white, fontFamily: fonts.bold, fontSize: 13 },
+  authButtonTextSecondary: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
 });

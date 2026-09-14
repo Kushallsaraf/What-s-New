@@ -59,3 +59,24 @@ export type Briefing = {
   risks: string;
   scenarios: string;
 };
+
+export type FeedCardType = 'event' | 'prediction' | 'sector' | 'outcome' | 'report' | 'watchlist';
+
+export type FeedItem = {
+  id: string;
+  card_type: FeedCardType | string;
+  payload: Record<string, unknown>;
+  importance: number;
+  confidence: number;
+  tickers: string[];
+  section: string;
+  created_at: string;
+  feed_score?: number;
+};
+
+export type FeedResponse = {
+  items: FeedItem[];
+  sections?: Record<string, FeedItem[]>;
+  quiet: boolean;
+  message?: string | null;
+};

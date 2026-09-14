@@ -18,7 +18,14 @@ import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-
 import { AskResearchModal } from './src/components/AskResearchModal';
 import { DetailModal } from './src/components/DetailModal';
 import { seedNews } from './src/data';
-import { bundledSnapshot, loadResearchSnapshot, type ResearchSnapshot } from './src/services/researchApi';
+import { authConfigured, getSession, getSupabase } from './src/services/auth';
+import {
+  bundledSnapshot,
+  fetchServerWatchlist,
+  loadResearchSnapshot,
+  syncWatchlist,
+  type ResearchSnapshot,
+} from './src/services/researchApi';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ExploreScreen, MarketsScreen } from './src/screens/MarketExploreScreens';
 import { ProfileScreen, WatchlistScreen, type NotificationSettings } from './src/screens/WatchlistProfileScreens';
@@ -58,12 +65,41 @@ function AppShell() {
   const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
   const [hydrated, setHydrated] = useState(false);
   const [research, setResearch] = useState<ResearchSnapshot>(bundledSnapshot);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadResearchSnapshot(controller.signal).then(setResearch);
+    void loadResearchSnapshot(watchlist, controller.signal).then(setResearch);
     return () => controller.abort();
+  }, [watchlist]);
+
+  useEffect(() => {
+    if (!authConfigured()) return;
+    void getSession().then((session) => {
+      setAccessToken(session?.access_token ?? null);
+      setAuthEmail(session?.user?.email ?? null);
+    });
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data } = sb.auth.onAuthStateChange((_event, session) => {
+      setAccessToken(session?.access_token ?? null);
+      setAuthEmail(session?.user?.email ?? null);
+    });
+    return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!accessToken || !hydrated) return;
+    void fetchServerWatchlist(accessToken).then((remote) => {
+      if (remote && remote.length) setWatchlist(remote);
+    });
+  }, [accessToken, hydrated]);
+
+  useEffect(() => {
+    if (!accessToken || !hydrated) return;
+    void syncWatchlist(watchlist, accessToken);
+  }, [accessToken, hydrated, watchlist]);
 
   const quotes = research.quotes;
 
@@ -124,12 +160,17 @@ function AppShell() {
           onToggleMemes={() => setShowMemes((value) => !value)}
           notifications={notifications}
           onToggleNotification={toggleNotification}
+          authEmail={authEmail}
+          authConfigured={authConfigured()}
         />
       );
     }
     return (
       <HomeScreen
         news={newsWithOptionalContext}
+        feedItems={research.feedItems}
+        quiet={research.quiet}
+        quietMessage={research.quietMessage}
         quotes={quotes}
         watchlist={watchlist}
         preferences={preferences}
@@ -139,7 +180,7 @@ function AppShell() {
         onToggleWatch={toggleWatch}
       />
     );
-  }, [notifications, preferences, quotes, research.briefing, showMemes, tab, watchlist]);
+  }, [authEmail, notifications, preferences, quotes, research, showMemes, tab, watchlist]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
