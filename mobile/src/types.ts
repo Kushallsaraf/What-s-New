@@ -7,7 +7,6 @@ export type Stock = {
   ticker: string;
   name: string;
   sector: string;
-  color: string;
   base: number;
 };
 
@@ -27,7 +26,6 @@ export type NewsItem = {
   id: string;
   ticker: string;
   name: string;
-  color: string;
   sector: string;
   headline: string;
   source: string;

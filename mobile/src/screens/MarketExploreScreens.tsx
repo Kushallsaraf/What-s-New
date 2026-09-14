@@ -132,7 +132,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
   return (
     <View style={styles.assetRow}>
       <View style={styles.assetIdentity}>
-        <StockAvatar ticker={stock.ticker} color={stock.color} size={34} />
+        <StockAvatar ticker={stock.ticker} size={32} />
         <View style={styles.assetCopy}>
           <Text style={styles.assetTicker}>${stock.ticker}</Text>
           <Text style={styles.assetName} numberOfLines={1}>{stock.name}</Text>

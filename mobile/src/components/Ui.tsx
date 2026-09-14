@@ -76,10 +76,10 @@ export function ImpactTag({ impact }: { impact: Impact }) {
   );
 }
 
-export function StockAvatar({ ticker, color, size = 30 }: { ticker: string; color: string; size?: number }) {
+export function StockAvatar({ ticker, size = 30 }: { ticker: string; size?: number }) {
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: Math.round(size * 0.3), backgroundColor: `${color}22` }]}>
-      <Text style={[styles.avatarText, { color, fontSize: size < 30 ? 9 : 11 }]}>{ticker.slice(0, 2)}</Text>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: radius.sm, backgroundColor: colors.surfaceHi }]}>
+      <Text style={[styles.avatarText, { color: colors.textDim, fontSize: size < 30 ? 9 : 11 }]}>{ticker.slice(0, 2)}</Text>
     </View>
   );
 }

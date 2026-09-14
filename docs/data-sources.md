@@ -13,11 +13,32 @@ Market prices are no longer demo-only. The mobile app falls back to bundled dela
 | Source | Use | Cost/access | Product rule |
 | --- | --- | --- | --- |
 | SEC EDGAR | Filings and filing events | No key; identify client with email user-agent | Highest-signal free source. Link every filing. Respect request limits. |
-| Publisher RSS | Headlines from selected financial outlets | Free | Narrow allowlist only. Deduplicate aggressively. |
+| Publisher RSS | General market, macro and sector headlines | Free, no key | Fixed allowlist in `sources/rss.py`. Deduplicate aggressively. A feed that dies upstream is logged (`rss_feed_failed`), never swallowed. |
 | Finnhub free news | Market headlines for tracked tickers | Free API key | Rate-limit carefully. Treat as secondary to filings. |
 | Alpaca news | Benzinga headlines | Often gated on Basic (403) | Optional adapter behind `NewsSource`. Not required for MVP. |
 
 Paid news providers plug in via the same `NewsSource` interface (`WN_NEWS_SOURCES`). Do not rewrite the pipeline to add a vendor.
+
+### RSS allowlist
+
+The product is about news that moves a broad market, so the allowlist spans
+general business, the macro/policy cycle, and the sectors whose data lands on
+a published schedule — not one theme. All free, none require a key, and all
+were verified reachable (245 articles on a cold run).
+
+| Band | Feeds |
+| --- | --- |
+| General market | CNBC Top News, CNBC Markets, Yahoo Finance, MarketWatch Top Stories |
+| Macro and policy | Federal Reserve press releases, BLS releases, CNBC Economy |
+| Sector cadence | EIA Today in Energy, CNBC Energy, CNBC Health |
+
+Requests carry `SEC_USER_AGENT` as the user agent: the SEC requires a contact
+address and the other government feeds expect one.
+
+**Removed:** the Reuters business feed (`feeds.reuters.com`) that used to head
+this list. Reuters retired public RSS; the host no longer resolves. It had been
+failing silently because the fetch loop swallowed exceptions — which is why
+failures are now reported.
 
 ## Macro / official series (retained)
 

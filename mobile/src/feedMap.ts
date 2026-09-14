@@ -1,8 +1,6 @@
 import { stocks } from './data';
 import type { EventPayload, EventTicker, FeedItem, Impact, NewsItem, Sentiment } from './types';
 
-const FALLBACK_COLORS = ['#6C7BFF', '#33D690', '#F5B54C', '#FF5A6E', '#8792A3'];
-
 function asSentiment(value: unknown): Sentiment {
   const raw = String(value || 'neutral').toLowerCase().replace(/\s+/g, '_');
   if (raw.includes('bull')) return 'bullish';
@@ -16,14 +14,13 @@ function asImpact(value: unknown): Impact {
   return 'Medium';
 }
 
-/** Company name / sector / colour for a ticker, falling back for anything
- *  outside the bundled universe rather than dropping it. */
+/** Company name and sector for a ticker, falling back for anything outside
+ *  the bundled universe rather than dropping the row. */
 export function stockMeta(ticker: string) {
   const known = stocks.find((s) => s.ticker === ticker);
   return {
     name: known?.name ?? ticker,
     sector: known?.sector ?? 'Markets',
-    color: known?.color ?? FALLBACK_COLORS[ticker.charCodeAt(0) % FALLBACK_COLORS.length],
     known: Boolean(known),
   };
 }
@@ -110,7 +107,6 @@ export function feedEventToNewsItem(item: FeedItem): NewsItem | null {
     id: item.id,
     ticker: primary,
     name: meta.name,
-    color: meta.color,
     sector: meta.sector,
     headline: payload.headline,
     source: payload.sources[0]?.label || 'Pipeline',

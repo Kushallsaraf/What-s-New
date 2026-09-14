@@ -1,43 +1,77 @@
 import type { Briefing, EventPayload, FeedItem, MarketRowData, Quote, Stock } from './types';
 
+/**
+ * Bundled universe. Sectors deliberately match the GICS names the pipeline
+ * uses in universe.py so the two halves stop diverging — the app should
+ * eventually read this from /api/assets rather than carry its own copy.
+ */
 export const stocks: Stock[] = [
-  { ticker: 'AAPL', name: 'Apple', sector: 'Mega Cap', color: '#A2AAAD', base: 245.5 },
-  { ticker: 'MSFT', name: 'Microsoft', sector: 'Mega Cap', color: '#00A4EF', base: 421.12 },
-  { ticker: 'NVDA', name: 'NVIDIA', sector: 'AI', color: '#76B900', base: 174.84 },
-  { ticker: 'AMZN', name: 'Amazon', sector: 'Mega Cap', color: '#FF9900', base: 194.32 },
-  { ticker: 'GOOGL', name: 'Alphabet', sector: 'AI', color: '#4285F4', base: 172.18 },
-  { ticker: 'META', name: 'Meta Platforms', sector: 'Mega Cap', color: '#0866FF', base: 562.03 },
-  { ticker: 'TSLA', name: 'Tesla', sector: 'Auto / EV', color: '#E31937', base: 241.34 },
-  { ticker: 'AMD', name: 'Advanced Micro Devices', sector: 'AI', color: '#ED1C24', base: 151.07 },
-  { ticker: 'NOW', name: 'ServiceNow', sector: 'Technology', color: '#62D84E', base: 921.02 },
-  { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Financials', color: '#5A7EBF', base: 224.43 },
-  { ticker: 'XOM', name: 'Exxon Mobil', sector: 'Energy', color: '#C8102E', base: 112.06 },
-  { ticker: 'UNH', name: 'UnitedHealth', sector: 'Healthcare', color: '#002677', base: 562.01 },
-  { ticker: 'TLT', name: 'iShares 20+ Year Treasury ETF', sector: 'Fixed income', color: '#5B78B5', base: 87.31 },
-  { ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', sector: 'Broad market', color: '#8B96A8', base: 658.09 },
+  { ticker: 'AAPL', name: 'Apple', sector: 'Technology', base: 245.5 },
+  { ticker: 'MSFT', name: 'Microsoft', sector: 'Technology', base: 421.12 },
+  { ticker: 'NVDA', name: 'NVIDIA', sector: 'Technology', base: 174.84 },
+  { ticker: 'AVGO', name: 'Broadcom', sector: 'Technology', base: 338.2 },
+
+  { ticker: 'GOOGL', name: 'Alphabet', sector: 'Communication Services', base: 172.18 },
+  { ticker: 'META', name: 'Meta Platforms', sector: 'Communication Services', base: 562.03 },
+  { ticker: 'NFLX', name: 'Netflix', sector: 'Communication Services', base: 705.4 },
+
+  { ticker: 'AMZN', name: 'Amazon', sector: 'Consumer Discretionary', base: 194.32 },
+  { ticker: 'TSLA', name: 'Tesla', sector: 'Consumer Discretionary', base: 241.34 },
+  { ticker: 'MCD', name: "McDonald's", sector: 'Consumer Discretionary', base: 302.15 },
+
+  { ticker: 'WMT', name: 'Walmart', sector: 'Consumer Staples', base: 96.4 },
+  { ticker: 'KO', name: 'Coca-Cola', sector: 'Consumer Staples', base: 68.25 },
+  { ticker: 'PG', name: 'Procter & Gamble', sector: 'Consumer Staples', base: 158.7 },
+
+  { ticker: 'JPM', name: 'JPMorgan Chase', sector: 'Financials', base: 224.43 },
+  { ticker: 'BAC', name: 'Bank of America', sector: 'Financials', base: 41.8 },
+  { ticker: 'WFC', name: 'Wells Fargo', sector: 'Financials', base: 72.1 },
+
+  { ticker: 'UNH', name: 'UnitedHealth', sector: 'Healthcare', base: 562.01 },
+  { ticker: 'LLY', name: 'Eli Lilly', sector: 'Healthcare', base: 812.4 },
+  { ticker: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', base: 158.9 },
+
+  { ticker: 'XOM', name: 'Exxon Mobil', sector: 'Energy', base: 112.06 },
+  { ticker: 'CVX', name: 'Chevron', sector: 'Energy', base: 148.3 },
+  { ticker: 'COP', name: 'ConocoPhillips', sector: 'Energy', base: 102.75 },
+
+  { ticker: 'CAT', name: 'Caterpillar', sector: 'Industrials', base: 385.2 },
+  { ticker: 'GE', name: 'GE Aerospace', sector: 'Industrials', base: 178.55 },
+
+  { ticker: 'NEE', name: 'NextEra Energy', sector: 'Utilities', base: 74.9 },
+  { ticker: 'LIN', name: 'Linde', sector: 'Materials', base: 452.1 },
+  { ticker: 'AMT', name: 'American Tower', sector: 'Real Estate', base: 198.6 },
+
+  { ticker: 'SPY', name: 'SPDR S&P 500 ETF Trust', sector: 'ETF', base: 658.09 },
+  { ticker: 'QQQ', name: 'Invesco QQQ Trust', sector: 'ETF', base: 512.44 },
+  { ticker: 'TLT', name: 'iShares 20+ Year Treasury ETF', sector: 'ETF', base: 87.31 },
 ];
 
 export const sectors = [...new Set(stocks.map((stock) => stock.sector))];
 
+/** Stable pseudo-random move per ticker, so bundled quotes stay put across
+ *  reloads without needing a hand-maintained parallel array. */
+function seededChange(ticker: string): number {
+  let hash = 0;
+  for (let i = 0; i < ticker.length; i += 1) hash = (hash * 31 + ticker.charCodeAt(i)) % 997;
+  return Math.round(((hash / 997) * 4 - 2) * 10) / 10;
+}
+
 export const initialQuotes: Record<string, Quote> = Object.fromEntries(
-  stocks.map((stock, index) => [
+  stocks.map((stock) => [
     stock.ticker,
-    {
-      price: stock.base,
-      change: [ -0.4, 0.5, 1.8, 0.2, 0.7, 0.1, -1.1, 1.2, -1.3, 0.3, 0.1, 0, -0.9, 0.1 ][index] ?? 0,
-      freshness: 'Previous complete session',
-    },
+    { price: stock.base, change: seededChange(stock.ticker), freshness: 'Previous complete session' },
   ]),
 );
 
 export const morningBriefing: Briefing = {
   eyebrow: 'MORNING BRIEF · 7:00 ET',
-  title: 'Rates still set the tone; AI demand remains the strongest company-level signal',
+  title: 'Policy and the consumer are setting the tone; company news is the second-order story',
   summary:
-    'Official rate data points to a restrictive backdrop, while recent company filings keep the AI infrastructure demand case constructive. Breadth is mixed, so the index headline may overstate how widely strength is shared.',
-  confidence: 78,
-  risks: 'A hotter inflation print or weaker enterprise spending would challenge this view.',
-  scenarios: 'Cooling inflation plus broader sector participation would improve the market setup.',
+    'Official inflation and labour series still describe a restrictive backdrop, and consumer-facing data has softened at the margin. Sector dispersion is wide, so the index headline says less than usual about the median position.',
+  confidence: 74,
+  risks: 'A hotter inflation print, a weaker labour read, or an energy supply shock would each change the picture on their own.',
+  scenarios: 'Cooling inflation alongside steadier real income would broaden participation beyond the current leadership.',
 };
 
 /** Minutes-ago helper so bundled fixtures age like real feed rows. */
@@ -45,12 +79,7 @@ function minutesAgo(minutes: number): string {
   return new Date(Date.now() - minutes * 60_000).toISOString();
 }
 
-function eventItem(
-  id: string,
-  minutes: number,
-  section: string,
-  payload: EventPayload,
-): FeedItem {
+function eventItem(id: string, minutes: number, section: string, payload: EventPayload): FeedItem {
   return {
     id,
     card_type: 'event',
@@ -66,106 +95,165 @@ function eventItem(
 /**
  * Bundled event fixtures used when EXPO_PUBLIC_RESEARCH_API_URL is unset.
  * Shaped exactly like `feed_items` rows with card_type 'event' from
- * jobs/news_ingest.py, so the same cards render on seed and live data.
+ * jobs/news_ingest.py.
+ *
+ * These span the kinds of news that actually move a broad market — monetary
+ * policy, inflation and the consumer, energy supply, healthcare cost trend,
+ * bank regulation, capital spending — rather than a single theme. Company
+ * news is one entry among several, not the premise.
+ *
+ * Content is illustrative. Claims are deliberately qualitative: these
+ * fixtures must not put invented statistics in the mouth of a named source.
  */
 export const seedFeedItems: FeedItem[] = [
-  eventItem('nvda-ai-demand', 12, 'breaking', {
-    headline: 'AI infrastructure demand remains the central driver',
+  eventItem('policy-inflation-path', 14, 'breaking', {
+    headline: 'Inflation running ahead of wage growth keeps the policy path restrictive',
     summary:
-      'Management language continues to emphasize accelerated-computing demand and ecosystem growth, while elevated expectations leave little room for execution misses.',
-    impact: 'High',
-    sentiment: 'bullish',
-    confidence: 88,
-    tickers: [
-      { ticker: 'NVDA', direction: 'bullish', score: 88 },
-      { ticker: 'AMD', direction: 'bullish', score: 61 },
-      { ticker: 'MSFT', direction: 'bullish', score: 44 },
-      { ticker: 'GOOGL', direction: 'bullish', score: 37 },
-    ],
-    bull_case: 'Customer diversification and sustained capital spending would reinforce the demand case.',
-    bear_case: 'Slower customer spending or supply constraints could weaken revenue visibility.',
-    risks: 'Valuation leaves little room for execution misses; concentration in a few hyperscaler customers.',
-    sources: [
-      { label: 'SEC EDGAR — NVIDIA filings', url: 'https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude', type: 'official' },
-      { label: 'SEC EDGAR — AMD filings', url: 'https://www.sec.gov/edgar/browse/?CIK=2488&owner=exclude', type: 'official' },
-    ],
-    time_horizon: 'Next quarter',
-    meme: 'Green candles hit different 🕯️💚',
-  }),
-  eventItem('rates-long-end', 28, 'breaking', {
-    headline: 'Long-duration bonds remain exposed to higher yields',
-    summary:
-      'Long yields remain above their recent range. Incoming inflation and labor data are the next confirmation points.',
+      'Official price and earnings series continue to describe real incomes under pressure, which keeps the restrictive-for-longer reading intact. Duration is most exposed; banks benefit at the margin from a steeper curve.',
     impact: 'High',
     sentiment: 'bearish',
-    confidence: 86,
+    confidence: 84,
     tickers: [
-      { ticker: 'TLT', direction: 'bearish', score: 84 },
-      { ticker: 'SPY', direction: 'bearish', score: 41 },
-      { ticker: 'JPM', direction: 'bullish', score: 38 },
+      { ticker: 'TLT', direction: 'bearish', score: 86 },
+      { ticker: 'SPY', direction: 'bearish', score: 47 },
+      { ticker: 'JPM', direction: 'bullish', score: 41 },
+      { ticker: 'AMT', direction: 'bearish', score: 33 },
     ],
-    bull_case: 'Cooling inflation expectations or weaker labor data could ease pressure on long yields.',
-    bear_case: 'A higher term premium could keep yields elevated even if policy expectations soften.',
-    risks: 'Term premium can stay elevated independently of policy-rate expectations.',
+    bull_case: 'A cooler sequence of prints would ease pressure on the long end and broaden participation.',
+    bear_case: 'A higher term premium can hold yields up even if policy-rate expectations soften.',
+    risks: 'Term premium and policy expectations can move independently; one cool print is not a trend.',
     sources: [
+      { label: 'Federal Reserve press releases', url: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', type: 'official' },
+      { label: 'BLS news releases', url: 'https://www.bls.gov/news.release/', type: 'official' },
       { label: 'FRED 10-Year Treasury Rate', url: 'https://fred.stlouisfed.org/series/DGS10', type: 'official' },
-      { label: 'U.S. Treasury rates', url: 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates', type: 'official' },
     ],
     time_horizon: 'Next CPI release',
-    meme: 'Red candles, cold sweats 🥶',
   }),
-  eventItem('aapl-services', 62, 'recent', {
-    headline: 'Services resilience offsets uneven device demand',
+  eventItem('consumer-outlook', 39, 'breaking', {
+    headline: 'Consumer outlook softens as inflation expectations rise',
     summary:
-      'Recurring revenue quality remains constructive, but the evidence for a stronger hardware upgrade cycle is not yet decisive.',
-    impact: 'Medium',
-    sentiment: 'neutral',
-    confidence: 68,
+      'Sentiment and spending-intent measures have weakened while price expectations firmed. That split usually favours staples over discretionary rather than moving the whole tape.',
+    impact: 'High',
+    sentiment: 'bearish',
+    confidence: 78,
     tickers: [
-      { ticker: 'AAPL', direction: 'neutral', score: 66 },
-      { ticker: 'QCOM', direction: 'neutral', score: 31 },
+      { ticker: 'AMZN', direction: 'bearish', score: 62 },
+      { ticker: 'MCD', direction: 'bearish', score: 54 },
+      { ticker: 'WMT', direction: 'bullish', score: 49 },
+      { ticker: 'KO', direction: 'bullish', score: 38 },
     ],
-    bull_case: 'A stronger replacement cycle with stable services margins would improve the medium-term picture.',
-    bear_case: 'Regional demand weakness and regulatory pressure could weigh on services economics.',
-    risks: 'Regulatory action on app-store economics is the main asymmetric risk.',
+    bull_case: 'Steadier real income would put the discretionary basket back on the front foot.',
+    bear_case: 'Trade-down behaviour compresses discretionary margins well before it shows up in volumes.',
+    risks: 'Survey measures and actual spending have diverged for extended stretches before.',
     sources: [
-      { label: 'SEC EDGAR — Apple filings', url: 'https://www.sec.gov/edgar/browse/?CIK=320193&owner=exclude', type: 'official' },
+      { label: 'CNBC Economy', url: 'https://www.cnbc.com/economy/', type: 'market' },
+      { label: 'BLS news releases', url: 'https://www.bls.gov/news.release/', type: 'official' },
     ],
-    time_horizon: 'Next earnings call',
+    time_horizon: 'Next retail sales print',
   }),
-  eventItem('energy-inventory', 184, 'recent', {
-    headline: 'Oil inventory data remains inside its recent range',
+  eventItem('energy-supply', 96, 'recent', {
+    headline: 'Record domestic crude production reshapes the refining margin picture',
     summary:
-      'Stocks, production, and refinery utilization do not yet form a strong directional signal for energy equities.',
-    impact: 'Low',
-    sentiment: 'neutral',
-    confidence: 81,
-    tickers: [{ ticker: 'XOM', direction: 'neutral', score: 55 }],
-    bull_case: 'Sustained inventory draws with stable production would improve the demand case.',
-    bear_case: 'Headline-driven oil moves can reverse before weekly official data confirms them.',
-    risks: 'Geopolitical supply headlines can move the sector ahead of confirmed data.',
-    sources: [
-      { label: 'EIA Weekly Petroleum Status Report', url: 'https://www.eia.gov/petroleum/supply/weekly/', type: 'official' },
-    ],
-    time_horizon: 'Weekly petroleum status report',
-  }),
-  eventItem('index-breadth', 244, 'recent', {
-    headline: 'Headline index is steadier than its internals',
-    summary:
-      'Rate-sensitive groups are weaker while selected growth themes hold up, creating a selective rather than uniformly constructive backdrop.',
+      'Official supply data points to output at the top of its range while crack spreads stay elevated. Integrated producers and refiners are not positioned identically against that mix.',
     impact: 'Medium',
     sentiment: 'neutral',
     confidence: 76,
     tickers: [
-      { ticker: 'SPY', direction: 'neutral', score: 62 },
-      { ticker: 'NVDA', direction: 'bullish', score: 34 },
-      { ticker: 'TLT', direction: 'bearish', score: 29 },
+      { ticker: 'XOM', direction: 'bullish', score: 58 },
+      { ticker: 'COP', direction: 'bearish', score: 44 },
+      { ticker: 'CVX', direction: 'neutral', score: 36 },
     ],
-    bull_case: 'Broader participation across sectors would improve the quality of the advance.',
-    bear_case: 'A narrow leadership group increases sensitivity to company-specific disappointments.',
-    risks: 'Concentration makes the index headline a poor proxy for the median constituent.',
-    sources: [{ label: 'NYSE market data', url: 'https://www.nyse.com/market-data', type: 'market' }],
-    time_horizon: 'Rest of quarter',
+    bull_case: 'Sustained margins with stable output supports integrated cash generation.',
+    bear_case: 'Supply at record levels caps price recovery if demand growth slows.',
+    risks: 'Geopolitical supply headlines routinely move the sector ahead of confirmed weekly data.',
+    sources: [
+      { label: 'EIA Today in Energy', url: 'https://www.eia.gov/todayinenergy/', type: 'official' },
+      { label: 'EIA Weekly Petroleum Status Report', url: 'https://www.eia.gov/petroleum/supply/weekly/', type: 'official' },
+    ],
+    time_horizon: 'Weekly petroleum status report',
+  }),
+  eventItem('bank-regulation', 148, 'recent', {
+    headline: 'Regulators move to reduce reporting burden for smaller banks',
+    summary:
+      'Proposed changes to examination cycles and third-party risk guidance lower fixed compliance cost. The benefit is real but skewed toward regional balance sheets rather than the largest institutions.',
+    impact: 'Medium',
+    sentiment: 'bullish',
+    confidence: 71,
+    tickers: [
+      { ticker: 'WFC', direction: 'bullish', score: 52 },
+      { ticker: 'BAC', direction: 'bullish', score: 45 },
+      { ticker: 'JPM', direction: 'neutral', score: 28 },
+    ],
+    bull_case: 'Lower fixed compliance cost supports returns across regional franchises.',
+    bear_case: 'Relief on reporting does nothing for credit cost, which remains the sector swing factor.',
+    risks: 'Proposals are open for comment and can narrow substantially before taking effect.',
+    sources: [
+      { label: 'Federal Reserve press releases', url: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', type: 'official' },
+    ],
+    time_horizon: 'Comment period close',
+  }),
+  eventItem('healthcare-cost-trend', 213, 'recent', {
+    headline: 'Medical cost trend stays the deciding variable for managed care',
+    summary:
+      'Utilisation commentary in recent filings remains the clearest read on margin direction, and it has not yet settled. Pharma is exposed to the same trend from the opposite side.',
+    impact: 'Medium',
+    sentiment: 'neutral',
+    confidence: 69,
+    tickers: [
+      { ticker: 'UNH', direction: 'bearish', score: 57 },
+      { ticker: 'LLY', direction: 'bullish', score: 42 },
+      { ticker: 'JNJ', direction: 'neutral', score: 26 },
+    ],
+    bull_case: 'Utilisation normalising toward pre-pandemic patterns would restore margin visibility.',
+    bear_case: 'Cost trend running above pricing compresses managed-care margins for several quarters.',
+    risks: 'Policy and reimbursement changes can override the underlying utilisation trend.',
+    sources: [
+      { label: 'SEC EDGAR — UnitedHealth filings', url: 'https://www.sec.gov/edgar/browse/?CIK=731766&owner=exclude', type: 'official' },
+    ],
+    time_horizon: 'Next earnings season',
+  }),
+  eventItem('capex-machinery', 287, 'recent', {
+    headline: 'Capital-goods orders point to a slower industrial spending cycle',
+    summary:
+      'Order and backlog commentary suggests customers are extending decision timelines. Aerospace demand is holding up better than construction and mining-exposed machinery.',
+    impact: 'Medium',
+    sentiment: 'bearish',
+    confidence: 67,
+    tickers: [
+      { ticker: 'CAT', direction: 'bearish', score: 55 },
+      { ticker: 'LIN', direction: 'bearish', score: 34 },
+      { ticker: 'GE', direction: 'bullish', score: 31 },
+    ],
+    bull_case: 'Infrastructure and grid investment can offset weakness in construction-linked demand.',
+    bear_case: 'Extended decision timelines show up in backlog well before they show up in revenue.',
+    risks: 'Order data is volatile month to month and is frequently revised.',
+    sources: [
+      { label: 'CNBC Markets', url: 'https://www.cnbc.com/markets/', type: 'market' },
+    ],
+    time_horizon: 'Next durable goods report',
+  }),
+  eventItem('ai-infrastructure-demand', 341, 'recent', {
+    headline: 'AI infrastructure demand remains the strongest company-level signal',
+    summary:
+      'Filing language continues to emphasise accelerated-computing demand and ecosystem investment. It is a genuine company-level driver, but a narrow one against the macro backdrop above.',
+    impact: 'Medium',
+    sentiment: 'bullish',
+    confidence: 81,
+    tickers: [
+      { ticker: 'NVDA', direction: 'bullish', score: 79 },
+      { ticker: 'AVGO', direction: 'bullish', score: 58 },
+      { ticker: 'MSFT', direction: 'bullish', score: 41 },
+      { ticker: 'NEE', direction: 'bullish', score: 24 },
+    ],
+    bull_case: 'Customer diversification and sustained capital spending would reinforce the demand case.',
+    bear_case: 'Concentration in a handful of buyers magnifies any single spending decision.',
+    risks: 'Expectations are elevated, which leaves little room for execution misses.',
+    sources: [
+      { label: 'SEC EDGAR — NVIDIA filings', url: 'https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude', type: 'official' },
+      { label: 'SEC EDGAR — Broadcom filings', url: 'https://www.sec.gov/edgar/browse/?CIK=1730168&owner=exclude', type: 'official' },
+    ],
+    time_horizon: 'Next quarter',
+    meme: 'Green candles hit different 🕯️💚',
   }),
 ];
 
@@ -175,38 +263,5 @@ export const majorIndices: MarketRowData[] = [
   { name: 'Dow Jones', value: '45,834.22', change: -0.2 },
 ];
 
-export const globalMarkets: MarketRowData[] = [
-  { name: 'FTSE 100', value: '9,214.44', change: 0.2 },
-  { name: 'DAX', value: '23,748.12', change: -0.1 },
-  { name: 'Nikkei 225', value: '44,372.50', change: 0.6 },
-];
-
-export const commodities: MarketRowData[] = [
-  { name: 'WTI crude', value: '$67.18', change: 0.3 },
-  { name: 'Gold', value: '$3,642.40', change: -0.2 },
-  { name: 'Natural gas', value: '$3.08', change: 0.7 },
-];
-
-export const bonds: MarketRowData[] = [
-  { name: 'U.S. 2-year', value: '3.72%', change: 0.02 },
-  { name: 'U.S. 10-year', value: '4.08%', change: 0.04 },
-  { name: 'U.S. 30-year', value: '4.68%', change: 0.03 },
-];
-
-export const defaultWatchlist = ['NVDA', 'AAPL', 'MSFT', 'TLT'];
-export const defaultPreferences = ['Technology', 'AI', 'Breaking News', 'Morning brief'];
-
-export const assistantSuggestions = [
-  'Why are long bonds weak?',
-  'Summarize the AI demand evidence',
-  'What would change the morning view?',
-];
-
-export const assistantReplies: Record<string, string> = {
-  'why are long bonds weak?':
-    'Evidence: the 10-year yield remains above its recent range in Treasury and FRED data.\n\nScenario: cooling inflation or weaker labor data could reduce pressure.\n\nRisk: term premium can stay high even if policy-rate expectations ease.\n\nConfidence: 86%.',
-  'summarize the ai demand evidence':
-    'Evidence: recent company filings continue to emphasize accelerated-computing demand and ecosystem investment.\n\nBull case: broader customer adoption sustains spending. Bear case: elevated expectations magnify any slowdown.\n\nConfidence: 88%.',
-  'what would change the morning view?':
-    'The view would improve with cooler inflation and broader market participation. It would weaken with hotter inflation, rising long yields, or softer enterprise spending. Current confidence: 78%.',
-};
+export const defaultWatchlist = ['SPY', 'JPM', 'XOM', 'TLT'];
+export const defaultPreferences = ['Energy', 'Financials', 'Healthcare', 'Macro'];
