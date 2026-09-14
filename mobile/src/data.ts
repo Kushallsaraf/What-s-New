@@ -1,4 +1,4 @@
-import type { Briefing, MarketRowData, NewsItem, Quote, Stock } from './types';
+import type { Briefing, EventPayload, FeedItem, MarketRowData, Quote, Stock } from './types';
 
 export const stocks: Stock[] = [
   { ticker: 'AAPL', name: 'Apple', sector: 'Mega Cap', color: '#A2AAAD', base: 245.5 },
@@ -40,127 +40,133 @@ export const morningBriefing: Briefing = {
   scenarios: 'Cooling inflation plus broader sector participation would improve the market setup.',
 };
 
-export const seedNews: NewsItem[] = [
-  {
-    id: 'nvda-ai-demand',
-    ticker: 'NVDA',
-    name: 'NVIDIA',
-    color: '#76B900',
-    sector: 'AI',
+/** Minutes-ago helper so bundled fixtures age like real feed rows. */
+function minutesAgo(minutes: number): string {
+  return new Date(Date.now() - minutes * 60_000).toISOString();
+}
+
+function eventItem(
+  id: string,
+  minutes: number,
+  section: string,
+  payload: EventPayload,
+): FeedItem {
+  return {
+    id,
+    card_type: 'event',
+    payload: payload as unknown as Record<string, unknown>,
+    importance: payload.impact === 'High' ? 0.82 : payload.impact === 'Medium' ? 0.55 : 0.3,
+    confidence: payload.confidence / 100,
+    tickers: payload.tickers.map((t) => t.ticker),
+    section,
+    created_at: minutesAgo(minutes),
+  };
+}
+
+/**
+ * Bundled event fixtures used when EXPO_PUBLIC_RESEARCH_API_URL is unset.
+ * Shaped exactly like `feed_items` rows with card_type 'event' from
+ * jobs/news_ingest.py, so the same cards render on seed and live data.
+ */
+export const seedFeedItems: FeedItem[] = [
+  eventItem('nvda-ai-demand', 12, 'breaking', {
     headline: 'AI infrastructure demand remains the central driver',
-    source: 'SEC filing',
-    time: '12m ago',
-    sentiment: 'bullish',
-    impact: 'High',
-    confidence: 88,
     summary:
       'Management language continues to emphasize accelerated-computing demand and ecosystem growth, while elevated expectations leave little room for execution misses.',
-    why:
-      'Sustained hyperscaler spending supports revenue visibility across the accelerator supply chain, but valuation makes confirmation especially important.',
-    bullCase: 'Customer diversification and sustained capital spending would reinforce the demand case.',
-    bearCase: 'Slower customer spending or supply constraints could weaken revenue visibility.',
-    watch: ['Next quarterly filing', 'Hyperscaler capital-spending guidance', 'Gross-margin trend'],
-    sources: [
-      {
-        label: 'SEC EDGAR — NVIDIA filings',
-        url: 'https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude',
-        type: 'official',
-      },
-    ],
-  },
-  {
-    id: 'tlt-rates',
-    ticker: 'TLT',
-    name: 'iShares 20+ Year Treasury ETF',
-    color: '#5B78B5',
-    sector: 'Fixed income',
-    headline: 'Long-duration bonds remain exposed to higher yields',
-    source: 'Treasury · FRED',
-    time: '28m ago',
-    sentiment: 'bearish',
     impact: 'High',
-    confidence: 86,
+    sentiment: 'bullish',
+    confidence: 88,
+    tickers: [
+      { ticker: 'NVDA', direction: 'bullish', score: 88 },
+      { ticker: 'AMD', direction: 'bullish', score: 61 },
+      { ticker: 'MSFT', direction: 'bullish', score: 44 },
+      { ticker: 'GOOGL', direction: 'bullish', score: 37 },
+    ],
+    bull_case: 'Customer diversification and sustained capital spending would reinforce the demand case.',
+    bear_case: 'Slower customer spending or supply constraints could weaken revenue visibility.',
+    risks: 'Valuation leaves little room for execution misses; concentration in a few hyperscaler customers.',
+    sources: [
+      { label: 'SEC EDGAR — NVIDIA filings', url: 'https://www.sec.gov/edgar/browse/?CIK=1045810&owner=exclude', type: 'official' },
+      { label: 'SEC EDGAR — AMD filings', url: 'https://www.sec.gov/edgar/browse/?CIK=2488&owner=exclude', type: 'official' },
+    ],
+    time_horizon: 'Next quarter',
+    meme: 'Green candles hit different 🕯️💚',
+  }),
+  eventItem('rates-long-end', 28, 'breaking', {
+    headline: 'Long-duration bonds remain exposed to higher yields',
     summary:
       'Long yields remain above their recent range. Incoming inflation and labor data are the next confirmation points.',
-    why:
-      'Higher long-term yields increase the discount-rate burden on duration-sensitive assets and can tighten financial conditions.',
-    bullCase: 'Cooling inflation expectations or weaker labor data could ease pressure on long yields.',
-    bearCase: 'A higher term premium could keep yields elevated even if policy expectations soften.',
-    watch: ['Next CPI release', 'Treasury auction demand', '10-year term premium'],
+    impact: 'High',
+    sentiment: 'bearish',
+    confidence: 86,
+    tickers: [
+      { ticker: 'TLT', direction: 'bearish', score: 84 },
+      { ticker: 'SPY', direction: 'bearish', score: 41 },
+      { ticker: 'JPM', direction: 'bullish', score: 38 },
+    ],
+    bull_case: 'Cooling inflation expectations or weaker labor data could ease pressure on long yields.',
+    bear_case: 'A higher term premium could keep yields elevated even if policy expectations soften.',
+    risks: 'Term premium can stay elevated independently of policy-rate expectations.',
     sources: [
       { label: 'FRED 10-Year Treasury Rate', url: 'https://fred.stlouisfed.org/series/DGS10', type: 'official' },
       { label: 'U.S. Treasury rates', url: 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates', type: 'official' },
     ],
-  },
-  {
-    id: 'aapl-services',
-    ticker: 'AAPL',
-    name: 'Apple',
-    color: '#A2AAAD',
-    sector: 'Mega Cap',
+    time_horizon: 'Next CPI release',
+    meme: 'Red candles, cold sweats 🥶',
+  }),
+  eventItem('aapl-services', 62, 'recent', {
     headline: 'Services resilience offsets uneven device demand',
-    source: 'SEC filing',
-    time: '1h ago',
-    sentiment: 'neutral',
-    impact: 'Medium',
-    confidence: 68,
     summary:
       'Recurring revenue quality remains constructive, but the evidence for a stronger hardware upgrade cycle is not yet decisive.',
-    why:
-      'Services mix supports margins, while regional device demand and regulation remain important swing factors.',
-    bullCase: 'A stronger replacement cycle with stable services margins would improve the medium-term picture.',
-    bearCase: 'Regional demand weakness and regulatory pressure could weigh on services economics.',
-    watch: ['Next earnings call', 'Services margin', 'Regional iPhone demand'],
+    impact: 'Medium',
+    sentiment: 'neutral',
+    confidence: 68,
+    tickers: [
+      { ticker: 'AAPL', direction: 'neutral', score: 66 },
+      { ticker: 'QCOM', direction: 'neutral', score: 31 },
+    ],
+    bull_case: 'A stronger replacement cycle with stable services margins would improve the medium-term picture.',
+    bear_case: 'Regional demand weakness and regulatory pressure could weigh on services economics.',
+    risks: 'Regulatory action on app-store economics is the main asymmetric risk.',
     sources: [
       { label: 'SEC EDGAR — Apple filings', url: 'https://www.sec.gov/edgar/browse/?CIK=320193&owner=exclude', type: 'official' },
     ],
-  },
-  {
-    id: 'xom-inventory',
-    ticker: 'XOM',
-    name: 'Exxon Mobil',
-    color: '#C8102E',
-    sector: 'Energy',
+    time_horizon: 'Next earnings call',
+  }),
+  eventItem('energy-inventory', 184, 'recent', {
     headline: 'Oil inventory data remains inside its recent range',
-    source: 'U.S. EIA',
-    time: '3h ago',
-    sentiment: 'neutral',
-    impact: 'Low',
-    confidence: 81,
     summary:
       'Stocks, production, and refinery utilization do not yet form a strong directional signal for energy equities.',
-    why:
-      'The absence of a confirmed inventory trend leaves the sector more sensitive to supply headlines and geopolitical risk.',
-    bullCase: 'Sustained inventory draws with stable production would improve the demand case.',
-    bearCase: 'Headline-driven oil moves can reverse before weekly official data confirms them.',
-    watch: ['Weekly petroleum status report', 'U.S. production', 'Refinery utilization'],
+    impact: 'Low',
+    sentiment: 'neutral',
+    confidence: 81,
+    tickers: [{ ticker: 'XOM', direction: 'neutral', score: 55 }],
+    bull_case: 'Sustained inventory draws with stable production would improve the demand case.',
+    bear_case: 'Headline-driven oil moves can reverse before weekly official data confirms them.',
+    risks: 'Geopolitical supply headlines can move the sector ahead of confirmed data.',
     sources: [
       { label: 'EIA Weekly Petroleum Status Report', url: 'https://www.eia.gov/petroleum/supply/weekly/', type: 'official' },
     ],
-  },
-  {
-    id: 'spy-breadth',
-    ticker: 'SPY',
-    name: 'SPDR S&P 500 ETF Trust',
-    color: '#8B96A8',
-    sector: 'Broad market',
+    time_horizon: 'Weekly petroleum status report',
+  }),
+  eventItem('index-breadth', 244, 'recent', {
     headline: 'Headline index is steadier than its internals',
-    source: 'Market context',
-    time: '4h ago',
-    sentiment: 'neutral',
-    impact: 'Medium',
-    confidence: 76,
     summary:
       'Rate-sensitive groups are weaker while selected growth themes hold up, creating a selective rather than uniformly constructive backdrop.',
-    why:
-      'Concentration can make index performance look healthier than the median constituent.',
-    bullCase: 'Broader participation across sectors would improve the quality of the advance.',
-    bearCase: 'A narrow leadership group increases sensitivity to company-specific disappointments.',
-    watch: ['Advance/decline breadth', 'Equal-weight index', 'Real yields'],
-    sources: [
-      { label: 'NYSE market data', url: 'https://www.nyse.com/market-data', type: 'market' },
+    impact: 'Medium',
+    sentiment: 'neutral',
+    confidence: 76,
+    tickers: [
+      { ticker: 'SPY', direction: 'neutral', score: 62 },
+      { ticker: 'NVDA', direction: 'bullish', score: 34 },
+      { ticker: 'TLT', direction: 'bearish', score: 29 },
     ],
-  },
+    bull_case: 'Broader participation across sectors would improve the quality of the advance.',
+    bear_case: 'A narrow leadership group increases sensitivity to company-specific disappointments.',
+    risks: 'Concentration makes the index headline a poor proxy for the median constituent.',
+    sources: [{ label: 'NYSE market data', url: 'https://www.nyse.com/market-data', type: 'market' }],
+    time_horizon: 'Rest of quarter',
+  }),
 ];
 
 export const majorIndices: MarketRowData[] = [
@@ -186,21 +192,6 @@ export const bonds: MarketRowData[] = [
   { name: 'U.S. 10-year', value: '4.08%', change: 0.04 },
   { name: 'U.S. 30-year', value: '4.68%', change: 0.03 },
 ];
-
-export const chatSuggestions = [
-  'Why are long yields important?',
-  'What changed for NVIDIA?',
-  'What would change today’s view?',
-];
-
-export const askResearchResponses: Record<string, string> = {
-  'why are long yields important?':
-    'Long yields affect borrowing costs and the discount rate applied to future cash flows. Today’s evidence: Treasury and FRED series show yields above their recent range. Scenario: cooling inflation could ease pressure. Risk: a higher term premium could keep yields elevated. Confidence: 86%.',
-  'what changed for nvidia?':
-    'The latest source-linked evidence still emphasizes AI infrastructure demand. That supports the demand case, while elevated expectations remain the main risk. Watch hyperscaler capital spending, supply, and gross margins. Confidence: 88%.',
-  'what would change today’s view?':
-    'The view improves if inflation cools and participation broadens across sectors. It weakens if long yields rise, inflation reaccelerates, or enterprise spending softens. Current confidence: 78%.',
-};
 
 export const defaultWatchlist = ['NVDA', 'AAPL', 'MSFT', 'TLT'];
 export const defaultPreferences = ['Technology', 'AI', 'Breaking News', 'Morning brief'];

@@ -1,7 +1,7 @@
 export type Sentiment = 'bullish' | 'bearish' | 'neutral';
 export type Impact = 'High' | 'Medium' | 'Low';
 
-export type AppTab = 'new' | 'markets' | 'explore' | 'watchlist' | 'profile';
+export type AppTab = 'new' | 'markets' | 'explore' | 'profile';
 
 export type Stock = {
   ticker: string;
@@ -60,7 +60,34 @@ export type Briefing = {
   scenarios: string;
 };
 
-export type FeedCardType = 'event' | 'prediction' | 'sector' | 'outcome' | 'report' | 'watchlist';
+export type FeedCardType = 'event' | 'prediction' | 'sector' | 'outcome' | 'report';
+
+/** One ticker the pipeline judged affected by an event, with its own read. */
+export type EventTicker = {
+  ticker: string;
+  direction: Sentiment;
+  score: number;
+};
+
+/**
+ * Shape of `feed_items.payload` for card_type 'event', as written by
+ * jobs/news_ingest.py. An event is a cluster of articles about one
+ * happening, so it carries many tickers and many sources.
+ */
+export type EventPayload = {
+  headline: string;
+  summary: string;
+  impact: Impact;
+  sentiment: Sentiment;
+  confidence: number;
+  tickers: EventTicker[];
+  bull_case: string;
+  bear_case: string;
+  risks: string;
+  sources: EvidenceLink[];
+  time_horizon: string;
+  meme?: string;
+};
 
 export type FeedItem = {
   id: string;
