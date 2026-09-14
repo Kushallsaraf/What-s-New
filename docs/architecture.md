@@ -61,3 +61,18 @@ python -m whats_new.jobs run <name>
 ```
 
 Schedule source of truth: [deploy/schedule.toml](../deploy/schedule.toml).
+
+`news_ingest` also runs without a database, which is how the funnel is
+reviewed before Supabase exists:
+
+```bash
+python -m whats_new.jobs run news_ingest --dry-run --since-hours 24
+```
+
+Fetch, enrich, theme-route, score, cluster and analyse all happen; only
+persistence is skipped, so it is the same code path that will write to
+Supabase. The result is the feed cards the app would have received. See
+[ingest.md](ingest.md).
+
+Jobs print their result to stdout and their structured logs to stderr, so
+`run ... > result.json` is safe to parse.

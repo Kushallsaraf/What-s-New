@@ -12,7 +12,7 @@ Market prices are no longer demo-only. The mobile app falls back to bundled dela
 
 | Source | Use | Cost/access | Product rule |
 | --- | --- | --- | --- |
-| SEC EDGAR | Filings and filing events | No key; identify client with email user-agent | Highest-signal free source. Link every filing. Respect request limits. |
+| SEC EDGAR | Filings and filing events | No key; identify client with email user-agent | Highest-signal free source. Link every filing. Respect request limits. `data.sec.gov` fails as a host rather than per filer, so the fetcher stops after two failures instead of timing out once per ticker. |
 | Publisher RSS | General market, macro and sector headlines | Free, no key | Fixed allowlist in `sources/rss.py`. Deduplicate aggressively. A feed that dies upstream is logged (`rss_feed_failed`), never swallowed. |
 | Finnhub free news | Market headlines for tracked tickers | Free API key | Rate-limit carefully. Treat as secondary to filings. |
 | Alpaca news | Benzinga headlines | Often gated on Basic (403) | Optional adapter behind `NewsSource`. Not required for MVP. |
@@ -31,6 +31,12 @@ were verified reachable (245 articles on a cold run).
 | General market | CNBC Top News, CNBC Markets, Yahoo Finance, MarketWatch Top Stories |
 | Macro and policy | Federal Reserve press releases, BLS releases, CNBC Economy |
 | Sector cadence | EIA Today in Energy, CNBC Energy, CNBC Health |
+| World | BBC World, BBC Business, Guardian World, Al Jazeera, UN News, CNBC World |
+
+The world band only became useful once
+[`ingest/themes.py`](../pipeline/src/whats_new/ingest/themes.py) could route an
+untickered story to an affected sector. Before that it was fetched, stored and
+never analysed — 218 world articles yielded 4 events. See [ingest.md](ingest.md).
 
 Requests carry `SEC_USER_AGENT` as the user agent: the SEC requires a contact
 address and the other government feeds expect one.
