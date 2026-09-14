@@ -72,6 +72,13 @@ export type EventTicker = {
  * jobs/news_ingest.py. An event is a cluster of articles about one
  * happening, so it carries many tickers and many sources.
  */
+/** A market theme the pipeline used to route an untickered story to a sector.
+ *  The label travels with the key so the app keeps no copy of the taxonomy. */
+export type EventTheme = {
+  key: string;
+  label: string;
+};
+
 export type EventPayload = {
   headline: string;
   summary: string;
@@ -84,6 +91,7 @@ export type EventPayload = {
   risks: string;
   sources: EvidenceLink[];
   time_horizon: string;
+  themes: EventTheme[];
   meme?: string;
 };
 

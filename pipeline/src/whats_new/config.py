@@ -49,6 +49,7 @@ class Settings:
     llm_budget_usd_per_run: float
     news_sources: tuple[str, ...]
     fixtures_dir: Path
+    feed_preview_file: Path | None
     outputs_dir: Path
     replay: bool
     signal_weight_news: float
@@ -94,6 +95,12 @@ def load_settings() -> Settings:
         llm_budget_usd_per_run=_env_float("LLM_BUDGET_USD_PER_RUN", 1.0),
         news_sources=sources,
         fixtures_dir=Path(_env("FIXTURES_DIR", str(root / "fixtures"))),
+        # Opt-in only. Lets /api/feed serve a dry-run file while there is no
+        # database, so the app can be developed against real pipeline output.
+        # Unset in any environment a user can reach.
+        feed_preview_file=(
+            Path(_env("WN_FEED_PREVIEW_FILE", "")) if _env("WN_FEED_PREVIEW_FILE") else None
+        ),
         outputs_dir=Path(_env("OUTPUTS_DIR", str(root / "outputs"))),
         replay=_env("WN_REPLAY", "0") in {"1", "true", "TRUE", "yes"},
         signal_weight_news=_env_float("SIGNAL_WEIGHT_NEWS", 0.45),

@@ -128,6 +128,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'FRED 10-Year Treasury Rate', url: 'https://fred.stlouisfed.org/series/DGS10', type: 'official' },
     ],
     time_horizon: 'Next CPI release',
+    themes: [{ key: 'inflation_data', label: 'Inflation' }, { key: 'monetary_policy', label: 'Monetary policy' }],
   }),
   eventItem('consumer-outlook', 39, 'breaking', {
     headline: 'Consumer outlook softens as inflation expectations rise',
@@ -150,6 +151,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'BLS news releases', url: 'https://www.bls.gov/news.release/', type: 'official' },
     ],
     time_horizon: 'Next retail sales print',
+    themes: [{ key: 'inflation_data', label: 'Inflation' }],
   }),
   eventItem('energy-supply', 96, 'recent', {
     headline: 'Record domestic crude production reshapes the refining margin picture',
@@ -171,6 +173,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'EIA Weekly Petroleum Status Report', url: 'https://www.eia.gov/petroleum/supply/weekly/', type: 'official' },
     ],
     time_horizon: 'Weekly petroleum status report',
+    themes: [{ key: 'energy_supply', label: 'Energy supply' }],
   }),
   eventItem('bank-regulation', 148, 'recent', {
     headline: 'Regulators move to reduce reporting burden for smaller banks',
@@ -191,6 +194,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'Federal Reserve press releases', url: 'https://www.federalreserve.gov/newsevents/pressreleases.htm', type: 'official' },
     ],
     time_horizon: 'Comment period close',
+    themes: [{ key: 'regulation', label: 'Regulation and antitrust' }],
   }),
   eventItem('healthcare-cost-trend', 213, 'recent', {
     headline: 'Medical cost trend stays the deciding variable for managed care',
@@ -211,6 +215,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'SEC EDGAR — UnitedHealth filings', url: 'https://www.sec.gov/edgar/browse/?CIK=731766&owner=exclude', type: 'official' },
     ],
     time_horizon: 'Next earnings season',
+    themes: [{ key: 'public_health', label: 'Public health' }],
   }),
   eventItem('capex-machinery', 287, 'recent', {
     headline: 'Capital-goods orders point to a slower industrial spending cycle',
@@ -231,6 +236,8 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'CNBC Markets', url: 'https://www.cnbc.com/markets/', type: 'market' },
     ],
     time_horizon: 'Next durable goods report',
+    // Order-book commentary is company-level, so nothing routed it here.
+    themes: [],
   }),
   eventItem('ai-infrastructure-demand', 341, 'recent', {
     headline: 'AI infrastructure demand remains the strongest company-level signal',
@@ -253,6 +260,7 @@ export const seedFeedItems: FeedItem[] = [
       { label: 'SEC EDGAR — Broadcom filings', url: 'https://www.sec.gov/edgar/browse/?CIK=1730168&owner=exclude', type: 'official' },
     ],
     time_horizon: 'Next quarter',
+    themes: [],
     meme: 'Green candles hit different 🕯️💚',
   }),
 ];

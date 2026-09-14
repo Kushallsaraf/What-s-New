@@ -113,7 +113,36 @@ def test_dry_run_returns_the_cards_the_app_would_receive(no_database, no_llm, ar
 def test_dry_run_reports_the_themes_behind_each_event(no_database, no_llm, articles):
     result = run({"dry_run": True})
 
-    themes = {t for e in result["events"] for t in e["themes"]}
+    themes = {t["key"] for e in result["events"] for t in e["payload"]["themes"]}
     assert {"energy_supply", "monetary_policy"} & themes, (
-        "theme routing is what lets untickered news through, so the preview must show it"
+        "theme routing is what lets untickered news through, so the card must carry it"
     )
+
+    labelled = [t for e in result["events"] for t in e["payload"]["themes"]]
+    assert all(t["label"] and t["label"] != t["key"] for t in labelled), (
+        "the label travels with the key so the client keeps no copy of the taxonomy"
+    )
+
+
+def test_preview_rows_match_the_feed_row_shape(no_database, no_llm, articles):
+    """The preview file is served straight through /api/feed, so a row that
+    drifts from the database shape breaks the app rather than the pipeline."""
+    result = run({"dry_run": True})
+
+    row = result["events"][0]
+    for key in ("id", "card_type", "payload", "importance", "confidence", "tickers", "section", "created_at"):
+        assert key in row, f"preview row is missing {key}"
+    assert row["card_type"] == "event"
+    assert row["section"] in {"breaking", "recent"}
+    assert isinstance(row["tickers"], list)
+
+
+def test_dry_run_writes_a_preview_file(no_database, no_llm, articles, tmp_path):
+    import json
+
+    out = tmp_path / "nested" / "preview.json"
+    result = run({"dry_run": True, "out": str(out)})
+
+    assert result["out"] == str(out)
+    rows = json.loads(out.read_text(encoding="utf-8"))
+    assert rows == json.loads(json.dumps(result["events"], default=str))

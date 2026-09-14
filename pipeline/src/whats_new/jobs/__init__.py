@@ -66,6 +66,10 @@ def main(argv: list[str] | None = None) -> None:
     )
     run_p.add_argument("--since-hours", type=int, help="Look-back window for source fetches")
     run_p.add_argument("--payload", help="Extra payload as a JSON object")
+    run_p.add_argument(
+        "--out",
+        help="With --dry-run, write the feed rows to this file (see WN_FEED_PREVIEW_FILE)",
+    )
     sub.add_parser("list", help="List jobs")
     args = parser.parse_args(argv)
 
@@ -101,6 +105,8 @@ def main(argv: list[str] | None = None) -> None:
             payload["dry_run"] = True
         if args.since_hours:
             payload["since_hours"] = args.since_hours
+        if args.out:
+            payload["out"] = args.out
 
         result = run_job(args.name, payload)
         if args.dry_run:

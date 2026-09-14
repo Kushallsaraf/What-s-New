@@ -40,6 +40,15 @@ export function EventCard({ item, watchlist, showMeme = false, onOpen, onToggleW
   const sourceCount = payload.sources.length;
   const breaking = item.section === 'breaking';
 
+  // When a story names no company, the tickers below are liquid sector
+  // proxies the pipeline routed to, not instruments the article mentioned.
+  // Saying so is the difference between evidence and a suggestion.
+  const routed = payload.themes.length > 0;
+  const count = payload.tickers.length;
+  const tickerLabel = routed
+    ? `Sector exposure${count > 1 ? ` · ${count}` : ''}`
+    : `Affected ticker${count === 1 ? '' : `s · ${count}`}`;
+
   return (
     <View style={[styles.card, breaking && styles.cardBreaking]}>
       <Pressable
@@ -67,9 +76,12 @@ export function EventCard({ item, watchlist, showMeme = false, onOpen, onToggleW
       </Pressable>
 
       <View style={styles.tickerSection}>
-        <Text style={styles.tickerLabel}>
-          Affected {payload.tickers.length === 1 ? 'ticker' : `tickers · ${payload.tickers.length}`}
-        </Text>
+        <Text style={styles.tickerLabel}>{tickerLabel}</Text>
+        {routed ? (
+          <Text style={styles.themeRow} numberOfLines={1}>
+            {payload.themes.map((t) => t.label).join(' · ')}
+          </Text>
+        ) : null}
         <View style={styles.tickerRow}>
           {payload.tickers.map((entry) => {
             const watching = watchlist.includes(entry.ticker);
@@ -159,6 +171,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     marginBottom: 8,
     textTransform: 'uppercase',
+  },
+  themeRow: {
+    color: colors.textFaint,
+    fontFamily: fonts.mono,
+    fontSize: 10.5,
+    letterSpacing: 0.3,
+    marginBottom: 8,
+    marginTop: -3,
   },
   tickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
   tickerChip: {

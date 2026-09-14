@@ -12,6 +12,14 @@ def _direction_label(direction: str) -> str:
     return direction.replace("_", " ")
 
 
+def _theme_labels(articles: list) -> list[dict[str, str]]:
+    """Themes across a cluster, as {key, label}, strongest theme first."""
+    from whats_new.ingest.themes import THEMES
+
+    keys = {t for a in articles for t in a.themes}
+    return [{"key": t.key, "label": t.label} for t in THEMES if t.key in keys]
+
+
 @job("news_ingest")
 def run(payload: dict[str, Any]) -> dict[str, Any]:
     from whats_new import db
@@ -171,20 +179,33 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
                 if a.url
             ][:5],
             "time_horizon": result.time_horizon,
+            # Which market themes routed this story here. Empty for an event
+            # that named a company outright; the app uses it to distinguish
+            # "Exxon said X" from "a shipping story that touches energy".
+            # Key and label travel together so the client never has to keep
+            # its own copy of the taxonomy in sync.
+            "themes": _theme_labels(cluster.articles),
         }
         section = "breaking" if result.importance >= 0.8 else "recent"
 
         if dry_run:
-            # Everything above is the real pipeline; only persistence is skipped.
+            # Everything above is the real pipeline; only persistence is
+            # skipped. Rows carry the same shape /api/feed returns, so the
+            # preview file can be served to the app unchanged.
+            published = [a.published_at for a in cluster.articles if a.published_at]
+            created_at = max(published) if published else datetime.now(timezone.utc)
             preview.append(
                 {
-                    "section": section,
-                    "importance": round(result.importance, 3),
-                    "cluster_key": cluster.cluster_key,
-                    "source_count": cluster.source_count,
-                    "themes": sorted({t for a in cluster.articles for t in a.themes}),
-                    "model": result.llm_model or "heuristic",
+                    "id": cluster.cluster_key,
+                    "card_type": "event",
                     "payload": payload_card,
+                    "importance": result.importance,
+                    "confidence": result.confidence,
+                    "tickers": result.tickers,
+                    "section": section,
+                    "created_at": created_at.isoformat(),
+                    "source_count": cluster.source_count,
+                    "model": result.llm_model or "heuristic",
                 }
             )
             continue
@@ -318,4 +339,13 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
                 "events": preview,
             }
         )
+        out = payload.get("out")
+        if out:
+            import json
+            from pathlib import Path
+
+            path = Path(str(out)).expanduser()
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(preview, indent=2, default=str), encoding="utf-8")
+            summary["out"] = str(path)
     return summary

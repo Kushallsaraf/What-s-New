@@ -1,5 +1,13 @@
 import { stocks } from './data';
-import type { EventPayload, EventTicker, FeedItem, Impact, NewsItem, Sentiment } from './types';
+import type {
+  EventPayload,
+  EventTheme,
+  EventTicker,
+  FeedItem,
+  Impact,
+  NewsItem,
+  Sentiment,
+} from './types';
 
 function asSentiment(value: unknown): Sentiment {
   const raw = String(value || 'neutral').toLowerCase().replace(/\s+/g, '_');
@@ -51,6 +59,12 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
       }))
     : [];
 
+  const themes: EventTheme[] = Array.isArray(p.themes)
+    ? (p.themes as Array<{ key?: string; label?: string }>)
+        .map((t) => ({ key: String(t.key || ''), label: String(t.label || t.key || '') }))
+        .filter((t) => t.key)
+    : [];
+
   return {
     headline: String(p.headline || 'Event'),
     summary: String(p.summary || ''),
@@ -64,6 +78,7 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
     risks: String(p.risks || ''),
     sources,
     time_horizon: String(p.time_horizon || ''),
+    themes,
     meme: typeof p.meme === 'string' ? p.meme : undefined,
   };
 }
@@ -95,6 +110,9 @@ export function feedEventToNewsItem(item: FeedItem): NewsItem | null {
   const others = payload.tickers.slice(1);
 
   const watch: string[] = [];
+  if (payload.themes.length) {
+    watch.push(`Routed via — ${payload.themes.map((t) => t.label).join(', ')}`);
+  }
   if (payload.time_horizon) watch.push(`Horizon — ${payload.time_horizon}`);
   if (payload.risks) watch.push(`Risks — ${payload.risks}`);
   if (others.length) {
