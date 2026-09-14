@@ -1,39 +1,49 @@
-# Research pipeline
+# Research & processing pipeline
 
-This directory keeps heavier data pulls and model evaluation away from the phone. The native Expo/React Native client only receives small, precomputed JSON payloads.
+Stdlib-first package under `src/whats_new/`.
 
-## Baseline benchmark (no third-party packages)
+## Quick checks
 
 ```bash
 cd pipeline
-PYTHONPATH=src python -m unittest discover -s tests
-PYTHONPATH=src python -m whats_new.benchmark \
-  --input path/to/ohlcv.csv \
-  --models baselines \
-  --horizons 1,5
+PYTHONPATH=src python3 -m unittest discover -s tests
+PYTHONPATH=src python3 -m whats_new.doctor
 ```
 
-The CSV must contain `timestamp,open,high,low,close`; `volume` and `amount` are optional.
-
-## Optional Kronos evaluation
-
-Kronos is not part of the default runtime. It is evaluated zero-shot only after the baselines work:
+## Optional extras
 
 ```bash
-git clone https://github.com/shiyu-coder/Kronos ../vendor/Kronos
-python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[kronos]'
-pip install -r ../vendor/Kronos/requirements.txt
-
-whats-new-benchmark \
-  --input path/to/ohlcv.csv \
-  --models baselines,kronos-mini,kronos-small \
-  --kronos-repo ../vendor/Kronos \
-  --horizons 1,5 \
-  --device cpu
+pip install -e ".[data,llm,api]"   # ingest + FastAPI
+pip install -e ".[kronos]"        # optional Kronos adapter deps
 ```
 
-Model files are downloaded from the official `NeoQuasar` Hugging Face repositories. This can take time and disk space, so it should run on a laptop/server job, never on the phone.
+## Jobs (local)
 
-The generated report retains a Kronos variant only when it beats the strongest baseline on MAE and RMSE by at least 2%, does not reduce directional accuracy, wins at least 60% of comparable folds, and passes at least two horizons. Failure means it stays disabled. No fine-tuning is included in the MVP.
+```bash
+export PYTHONPATH=src
+python -m whats_new.jobs list
+python -m whats_new.jobs run market_data
+python -m whats_new.jobs run news_ingest
+python -m whats_new.jobs run kronos_predict
+python -m whats_new.jobs run signals_refresh
+python -m whats_new.jobs run resolve_outcomes
+python -m whats_new.jobs run morning_report
+python -m whats_new.jobs run closing_report
+```
+
+Use `WN_REPLAY=1` (or `--replay`) to read recorded fixtures instead of live APIs.
+
+## API
+
+```bash
+pip install -e ".[api,data,llm]"
+uvicorn whats_new.api.main:app --reload --port 8000
+```
+
+## Capability ports
+
+Cloud services are behind `whats_new.ports` with local defaults. See [docs/cloud-readiness.md](../docs/cloud-readiness.md) and `python -m whats_new.doctor`.
+
+## Kronos
+
+Still optional. Retention gate in `metrics.assess_candidate` must pass before `SIGNAL_WEIGHT_KRONOS` should rise above 0. See [docs/model-policy.md](../docs/model-policy.md).

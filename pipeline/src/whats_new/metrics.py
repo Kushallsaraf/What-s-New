@@ -127,6 +127,38 @@ def result_to_dict(result: FoldResult) -> dict[str, object]:
     return asdict(result)
 
 
+def calibration_buckets(
+    stated_confidence: Sequence[float],
+    hits: Sequence[bool],
+    edges: Sequence[float] = (0.0, 0.5, 0.7, 0.8, 0.9, 1.01),
+) -> list[dict[str, object]]:
+    """Bucket stated confidence vs realized hit rate (reliability curve)."""
+    if len(stated_confidence) != len(hits):
+        raise ValueError("stated_confidence and hits must be the same length")
+    out: list[dict[str, object]] = []
+    for i in range(len(edges) - 1):
+        lo, hi = float(edges[i]), float(edges[i + 1])
+        paired = [
+            (c, h)
+            for c, h in zip(stated_confidence, hits)
+            if lo <= float(c) < hi
+        ]
+        if not paired:
+            out.append({"bucket_low": lo, "bucket_high": hi, "n": 0, "hit_rate": None})
+            continue
+        rate = sum(1 for _, h in paired if h) / len(paired)
+        out.append(
+            {
+                "bucket_low": lo,
+                "bucket_high": min(hi, 1.0),
+                "n": len(paired),
+                "hit_rate": round(rate, 6),
+                "stated_mid": round((lo + min(hi, 1.0)) / 2, 6),
+            }
+        )
+    return out
+
+
 def _mean(values: Iterable[float]) -> float:
     items = list(values)
     return sum(items) / len(items) if items else 0.0
