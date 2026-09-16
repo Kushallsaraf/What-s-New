@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "whats-new-research"
 version = "0.1.0"
-description = "Zero-cost data and forecasting evaluation pipeline for What's New"
+description = "Market intelligence pipeline and API for What's New"
 requires-python = ">=3.10"
 dependencies = []
 
@@ -16,9 +16,39 @@ kronos = [
   "torch>=2.2",
   "huggingface-hub>=0.24",
 ]
+data = [
+  "httpx>=0.27",
+  "feedparser>=6.0",
+  "psycopg[binary]>=3.2",
+  "python-dotenv>=1.0",
+]
+llm = [
+  "httpx>=0.27",
+  "pydantic>=2.7",
+  "python-dotenv>=1.0",
+]
+api = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "psycopg[binary]>=3.2",
+  "pydantic>=2.7",
+  "python-dotenv>=1.0",
+  "PyJWT>=2.9",
+  "httpx>=0.27",
+]
+dev = [
+  "pytest>=8.0",
+]
+all = [
+  "whats-new-research[data,llm,api,kronos]",
+]
 
 [project.scripts]
 whats-new-benchmark = "whats_new.benchmark:main"
+whats-new-doctor = "whats_new.doctor:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

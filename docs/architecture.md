@@ -3,39 +3,76 @@
 ## Runtime boundary
 
 ```text
-Free official sources
-        │
-        ▼
-Scheduled Python worker ──► validation / provenance / confidence
-        │
-        ├──► baseline forecasts
-        └──► optional Kronos Mini/Small zero-shot evaluation
-                          │
-                          ▼
-                 compact JSON payloads
-                          │
-                          ▼
-              Expo / React Native mobile app
+News sources (RSS / SEC / Finnhub)     Alpaca bars
+              │                              │
+              ▼                              ▼
+     Cloud Run / local jobs          market_data + momentum
+              │                              │
+              ▼                              │
+     filter → cluster → LLM                  │
+              │                              │
+              ▼                              ▼
+           events ◄──────── signal engine ◄── Kronos (weight 0 until retained)
+              │                    │
+              ▼                    ▼
+         feed_items / reports / alerts
+              │
+              ▼
+         FastAPI (Supabase)
+              │
+              ▼
+     Expo / React Native mobile app
 ```
 
 The phone renders precomputed results and stores lightweight preferences. It does not download model weights, parse large filing archives, or run forecasting inference.
 
+Cloud capabilities (GCS, Secret Manager, Cloud Tasks, Expo Push, PostHog, Memorystore, etc.) are reached through `whats_new.ports` adapters. Local defaults work without GCP; see [cloud-readiness.md](cloud-readiness.md).
+
 ## Product cycles
 
 1. **Morning brief** — once per morning after scheduled source pulls.
-2. **Event-driven alerts** — only when a filing, official release, or watchlist event crosses the relevance and evidence thresholds.
+2. **Event-driven alerts** — only when importance, confidence, and user relevance thresholds are met.
 3. **Periodic watchlist digest** — delivered when tracked assets have meaningful changes.
-4. **End-of-day supplement** — optional and secondary.
+4. **End-of-day / closing report** — after market close.
+5. **Outcome resolution** — nightly, for immutable prediction audit.
 
 ## Compact API contracts
 
-- `GET /api/health` reports the runtime mode and whether Kronos is enabled.
-- `GET /api/briefings` demonstrates the evidence/scenario/risk/confidence contract.
-- `GET /api/assets` returns clearly delayed demo assets.
+- `GET /api/health` reports runtime mode, capability adapters, and whether Kronos weight is non-zero.
+- `GET /api/briefings` returns evidence/scenario/risk/confidence briefings.
+- `GET /api/assets` returns delayed (or live when provisioned) asset quotes.
 - `GET /api/sources` exposes source policy and access class.
+- `GET /api/feed` returns ranked feed cards from `feed_items`.
 
-The native client can point `EXPO_PUBLIC_RESEARCH_API_URL` at a compatible deployment. The current endpoints remain stateless and Cloudflare-compatible. A later phase can add a small D1/SQLite store for generated briefings and delivery state.
+The native client points `EXPO_PUBLIC_RESEARCH_API_URL` at the FastAPI backend.
 
 ## Persistence
 
-Watchlist and briefing preferences use React Native AsyncStorage on the device. This is deliberate for a zero-cost, single-device validation build. Account sync is deferred until user retention justifies authentication and server storage.
+- Supabase PostgreSQL holds events, predictions, signals, feed cards, and watchlists.
+- Device AsyncStorage remains a local cache / offline fallback; authenticated users sync watchlists to the server.
+- Jobs are append-oriented with `observed_at` / `as_of` for point-in-time honesty.
+
+## Job entrypoint
+
+All jobs share one command so local and Cloud Run stay identical:
+
+```bash
+python -m whats_new.jobs run <name>
+```
+
+Schedule source of truth: [deploy/schedule.toml](../deploy/schedule.toml).
+
+`news_ingest` also runs without a database, which is how the funnel is
+reviewed before Supabase exists:
+
+```bash
+python -m whats_new.jobs run news_ingest --dry-run --since-hours 24
+```
+
+Fetch, enrich, theme-route, score, cluster and analyse all happen; only
+persistence is skipped, so it is the same code path that will write to
+Supabase. The result is the feed cards the app would have received. See
+[ingest.md](ingest.md).
+
+Jobs print their result to stdout and their structured logs to stderr, so
+`run ... > result.json` is safe to parse.

@@ -2,7 +2,7 @@ import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, fonts, hitSlop } from '../theme';
+import { colors, fonts, hitSlop, radius, tabular } from '../theme';
 import type { NewsItem, Quote } from '../types';
 import { ChangePill, ConfidenceMeter, Section, SentimentBadge } from './Ui';
 
@@ -65,7 +65,7 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
           <Section title="What to watch next">
             {item.watch.map((watchItem) => (
               <View key={watchItem} style={styles.watchRow}>
-                <ChevronRight size={14} color={colors.brand} style={styles.watchIcon} />
+                <ChevronRight size={14} color={colors.textFaint} style={styles.watchIcon} />
                 <Text style={styles.paragraph}>{watchItem}</Text>
               </View>
             ))}
@@ -82,7 +82,7 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
                   <Text style={styles.sourceLabel}>{source.label}</Text>
                   <Text style={styles.sourceType}>{source.type.toUpperCase()} SOURCE</Text>
                 </View>
-                <ExternalLink size={14} color={colors.brand} />
+                <ExternalLink size={14} color={colors.textFaint} />
               </Pressable>
             ))}
           </Section>
@@ -109,27 +109,27 @@ const styles = StyleSheet.create({
   toolbarSubtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 2 },
   content: { padding: 18, paddingBottom: 36 },
   signalRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  impactScore: { backgroundColor: colors.amberDim, borderRadius: 20, paddingHorizontal: 9, paddingVertical: 4 },
-  impactScoreText: { color: colors.amber, fontFamily: fonts.bold, fontSize: 11.5 },
+  impactScore: { backgroundColor: colors.flatDim, borderRadius: radius.sm, paddingHorizontal: 9, paddingVertical: 4 },
+  impactScoreText: { color: colors.textDim, fontFamily: fonts.monoSemiBold, fontSize: 11, ...tabular },
   headline: { color: colors.text, fontFamily: fonts.extraBold, fontSize: 20, lineHeight: 26, marginBottom: 16 },
-  quoteCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, padding: 14 },
+  quoteCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, padding: 14 },
   quoteRight: { alignItems: 'flex-end' },
   label: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginBottom: 3 },
-  price: { color: colors.text, fontFamily: fonts.monoBold, fontSize: 22 },
+  price: { color: colors.text, fontFamily: fonts.monoBold, fontSize: 22 , ...tabular },
   freshness: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 9.5, marginTop: 2 },
   paragraph: { color: colors.textDim, flex: 1, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19.5 },
-  scenarioCard: { borderRadius: 12, borderWidth: 1, padding: 12 },
+  scenarioCard: { borderRadius: radius.md, borderWidth: 1, padding: 12 },
   bullCard: { backgroundColor: colors.bullDim, borderColor: '#1F4C3A', marginBottom: 8 },
   bearCard: { backgroundColor: colors.bearDim, borderColor: '#572330' },
   scenarioLabelBull: { color: colors.bull, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.6, marginBottom: 5 },
   scenarioLabelBear: { color: colors.bear, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.6, marginBottom: 5 },
   watchRow: { alignItems: 'flex-start', flexDirection: 'row', gap: 8, marginBottom: 8 },
   watchIcon: { marginTop: 3 },
-  sourceRow: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, padding: 12 },
+  sourceRow: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8, padding: 12 },
   sourceCopy: { flex: 1 },
   sourceLabel: { color: colors.text, fontFamily: fonts.semiBold, fontSize: 12.5 },
   sourceType: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 9, letterSpacing: 0.5, marginTop: 3 },
-  disclaimer: { backgroundColor: colors.surface, borderColor: colors.borderHi, borderRadius: 12, borderStyle: 'dashed', borderWidth: 1, marginTop: 8, padding: 12 },
+  disclaimer: { backgroundColor: colors.surface, borderColor: colors.borderHi, borderRadius: radius.md, borderStyle: 'dashed', borderWidth: 1, marginTop: 8, padding: 12 },
   disclaimerText: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 17 },
   pressed: { opacity: 0.72 },
 });

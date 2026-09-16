@@ -12,16 +12,22 @@ import { IBMPlexMono_700Bold } from '@expo-google-fonts/ibm-plex-mono/700Bold';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Compass, LineChart, Newspaper, Sparkles, User, Wallet } from 'lucide-react-native';
+import { Compass, LineChart, Newspaper, User } from 'lucide-react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AskResearchModal } from './src/components/AskResearchModal';
 import { DetailModal } from './src/components/DetailModal';
-import { seedNews } from './src/data';
-import { bundledSnapshot, loadResearchSnapshot, type ResearchSnapshot } from './src/services/researchApi';
+import { seedFeedItems } from './src/data';
+import { authConfigured, getSession, getSupabase } from './src/services/auth';
+import {
+  bundledSnapshot,
+  fetchServerWatchlist,
+  loadResearchSnapshot,
+  syncWatchlist,
+  type ResearchSnapshot,
+} from './src/services/researchApi';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ExploreScreen, MarketsScreen } from './src/screens/MarketExploreScreens';
-import { ProfileScreen, WatchlistScreen, type NotificationSettings } from './src/screens/WatchlistProfileScreens';
+import { ProfileScreen, type NotificationSettings } from './src/screens/ProfileScreen';
 import { colors, fonts } from './src/theme';
 import type { AppTab, NewsItem } from './src/types';
 
@@ -41,29 +47,51 @@ const defaultNotifications: NotificationSettings = {
   endOfDay: false,
 };
 
-const newsWithOptionalContext: NewsItem[] = seedNews.map((item) => {
-  if (item.ticker === 'NVDA') return { ...item, meme: 'Green candles hit different 🕯️💚' };
-  if (item.ticker === 'TLT') return { ...item, meme: 'Red candles, cold sweats 🥶' };
-  return item;
-});
-
 function AppShell() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AppTab>('new');
   const [openItem, setOpenItem] = useState<NewsItem | null>(null);
-  const [assistantOpen, setAssistantOpen] = useState(false);
   const [watchlist, setWatchlist] = useState(['NVDA', 'AAPL', 'MSFT', 'TSLA']);
   const [preferences, setPreferences] = useState(['Technology', 'AI', 'Fixed income']);
   const [showMemes, setShowMemes] = useState(true);
   const [notifications, setNotifications] = useState<NotificationSettings>(defaultNotifications);
   const [hydrated, setHydrated] = useState(false);
   const [research, setResearch] = useState<ResearchSnapshot>(bundledSnapshot);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
-    void loadResearchSnapshot(controller.signal).then(setResearch);
+    void loadResearchSnapshot(watchlist, controller.signal).then(setResearch);
     return () => controller.abort();
+  }, [watchlist]);
+
+  useEffect(() => {
+    if (!authConfigured()) return;
+    void getSession().then((session) => {
+      setAccessToken(session?.access_token ?? null);
+      setAuthEmail(session?.user?.email ?? null);
+    });
+    const sb = getSupabase();
+    if (!sb) return;
+    const { data } = sb.auth.onAuthStateChange((_event, session) => {
+      setAccessToken(session?.access_token ?? null);
+      setAuthEmail(session?.user?.email ?? null);
+    });
+    return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!accessToken || !hydrated) return;
+    void fetchServerWatchlist(accessToken).then((remote) => {
+      if (remote && remote.length) setWatchlist(remote);
+    });
+  }, [accessToken, hydrated]);
+
+  useEffect(() => {
+    if (!accessToken || !hydrated) return;
+    void syncWatchlist(watchlist, accessToken);
+  }, [accessToken, hydrated, watchlist]);
 
   const quotes = research.quotes;
 
@@ -114,7 +142,6 @@ function AppShell() {
   const screen = useMemo(() => {
     if (tab === 'markets') return <MarketsScreen quotes={quotes} />;
     if (tab === 'explore') return <ExploreScreen quotes={quotes} watchlist={watchlist} onToggleWatch={toggleWatch} />;
-    if (tab === 'watchlist') return <WatchlistScreen watchlist={watchlist} quotes={quotes} news={newsWithOptionalContext} onToggleWatch={toggleWatch} onOpen={setOpenItem} />;
     if (tab === 'profile') {
       return (
         <ProfileScreen
@@ -124,13 +151,16 @@ function AppShell() {
           onToggleMemes={() => setShowMemes((value) => !value)}
           notifications={notifications}
           onToggleNotification={toggleNotification}
+          authEmail={authEmail}
+          authConfigured={authConfigured()}
         />
       );
     }
     return (
       <HomeScreen
-        news={newsWithOptionalContext}
-        quotes={quotes}
+        feedItems={research.feedItems.length ? research.feedItems : seedFeedItems}
+        quiet={research.quiet}
+        quietMessage={research.quietMessage}
         watchlist={watchlist}
         preferences={preferences}
         showMemes={showMemes}
@@ -139,7 +169,7 @@ function AppShell() {
         onToggleWatch={toggleWatch}
       />
     );
-  }, [notifications, preferences, quotes, research.briefing, showMemes, tab, watchlist]);
+  }, [authEmail, notifications, preferences, quotes, research, showMemes, tab, watchlist]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -147,20 +177,10 @@ function AppShell() {
       <View style={styles.app}>
         <View style={styles.screen}>{screen}</View>
 
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Open AI research assistant"
-          onPress={() => setAssistantOpen(true)}
-          style={({ pressed }) => [styles.assistantButton, { bottom: 82 + Math.max(insets.bottom, 6) }, pressed && styles.pressed]}
-        >
-          <Sparkles size={20} color={colors.text} />
-        </Pressable>
-
         <BottomNavigation tab={tab} onChange={setTab} bottomInset={insets.bottom} />
       </View>
 
       <DetailModal item={openItem} quote={openItem ? quotes[openItem.ticker] : undefined} onClose={() => setOpenItem(null)} />
-      <AskResearchModal visible={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -170,7 +190,6 @@ function BottomNavigation({ tab, onChange, bottomInset }: { tab: AppTab; onChang
     { id: 'new' as const, label: "What's New", Icon: Newspaper },
     { id: 'markets' as const, label: 'Markets', Icon: LineChart },
     { id: 'explore' as const, label: 'Explore', Icon: Compass },
-    { id: 'watchlist' as const, label: 'Watchlist', Icon: Wallet },
     { id: 'profile' as const, label: 'Profile', Icon: User },
   ];
 
@@ -186,7 +205,7 @@ function BottomNavigation({ tab, onChange, bottomInset }: { tab: AppTab; onChang
             onPress={() => onChange(id)}
             style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
           >
-            <Icon size={19} color={active ? colors.brand : colors.textFaint} strokeWidth={active ? 2.4 : 2} />
+            <Icon size={19} color={active ? colors.text : colors.textFaint} strokeWidth={active ? 2.2 : 1.8} />
             <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
           </Pressable>
         );
@@ -226,25 +245,9 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.bg, flex: 1, maxWidth: 430, width: '100%' },
   app: { backgroundColor: colors.bg, flex: 1, position: 'relative' },
   screen: { flex: 1 },
-  assistantButton: {
-    alignItems: 'center',
-    backgroundColor: colors.brand,
-    borderRadius: 24,
-    elevation: 8,
-    height: 48,
-    justifyContent: 'center',
-    position: 'absolute',
-    right: 16,
-    shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    width: 48,
-    zIndex: 21,
-  },
   bottomNav: { backgroundColor: colors.bgElevated, borderTopColor: colors.border, borderTopWidth: 1, bottom: 0, flexDirection: 'row', left: 0, position: 'absolute', right: 0, zIndex: 20 },
   navItem: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'center' },
   navLabel: { color: colors.textFaint, fontFamily: fonts.medium, fontSize: 9.5 },
-  navLabelActive: { color: colors.brand, fontFamily: fonts.bold },
+  navLabelActive: { color: colors.text, fontFamily: fonts.bold },
   pressed: { opacity: 0.7 },
 });

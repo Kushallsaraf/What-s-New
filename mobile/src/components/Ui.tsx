@@ -2,7 +2,7 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Check, Minus, TrendingDown, TrendingUp } from 'lucide-react-native';
 
-import { colors, fonts } from '../theme';
+import { colors, fonts, radius, tabular } from '../theme';
 import type { Impact, Sentiment } from '../types';
 
 export function ScreenHeader({ title, subtitle, action }: { title: string; subtitle?: string; action?: ReactNode }) {
@@ -70,16 +70,16 @@ export function SentimentBadge({ sentiment, compact = false }: { sentiment: Sent
 export function ImpactTag({ impact }: { impact: Impact }) {
   const high = impact === 'High';
   return (
-    <Text style={[styles.impactText, { color: high ? colors.bear : colors.textFaint }]}>
+    <Text style={[styles.impactText, high && styles.impactTextHigh]}>
       {impact} impact
     </Text>
   );
 }
 
-export function StockAvatar({ ticker, color, size = 30 }: { ticker: string; color: string; size?: number }) {
+export function StockAvatar({ ticker, size = 30 }: { ticker: string; size?: number }) {
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: Math.round(size * 0.3), backgroundColor: `${color}22` }]}>
-      <Text style={[styles.avatarText, { color, fontSize: size < 30 ? 9 : 11 }]}>{ticker.slice(0, 2)}</Text>
+    <View style={[styles.avatar, { width: size, height: size, borderRadius: radius.sm, backgroundColor: colors.surfaceHi }]}>
+      <Text style={[styles.avatarText, { color: colors.textDim, fontSize: size < 30 ? 9 : 11 }]}>{ticker.slice(0, 2)}</Text>
     </View>
   );
 }
@@ -96,7 +96,7 @@ export function ChoiceChip({ label, selected, onPress }: { label: string; select
         pressed && styles.pressed,
       ]}
     >
-      {selected ? <Check size={11} color={colors.brand} strokeWidth={3} /> : null}
+      {selected ? <Check size={11} color={colors.text} strokeWidth={3} /> : null}
       <Text style={[styles.choiceText, selected && styles.choiceTextSelected]}>{label}</Text>
     </Pressable>
   );
@@ -132,8 +132,8 @@ const styles = StyleSheet.create({
   h1: { color: colors.text, fontFamily: fonts.extraBold, fontSize: 22, lineHeight: 28 },
   subtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 12.5, marginTop: 2 },
   liveWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.bear },
-  liveText: { color: colors.bear, fontFamily: fonts.extraBold, fontSize: 8, letterSpacing: 0.7 },
+  liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.textDim },
+  liveText: { color: colors.textFaint, fontFamily: fonts.monoBold, fontSize: 8, letterSpacing: 1.2 },
   section: { marginBottom: 22 },
   sectionTitle: {
     color: colors.textDim,
@@ -143,38 +143,39 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textTransform: 'uppercase',
   },
-  changePill: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 },
-  changePillLarge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: 10 },
-  changeText: { fontFamily: fonts.monoSemiBold, fontSize: 10.5 },
+  changePill: { flexDirection: 'row', alignItems: 'center', gap: 3, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 3 },
+  changePillLarge: { paddingHorizontal: 8, paddingVertical: 5, borderRadius: radius.md },
+  changeText: { fontFamily: fonts.monoSemiBold, fontSize: 10.5 , ...tabular },
   changeTextLarge: { fontSize: 12 },
-  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 20, paddingHorizontal: 9, paddingVertical: 4 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: radius.md, paddingHorizontal: 9, paddingVertical: 4 },
   badgeCompact: { paddingHorizontal: 7, paddingVertical: 3 },
   badgeDot: { width: 5, height: 5, borderRadius: 3 },
   badgeText: { fontFamily: fonts.bold, fontSize: 11.5 },
   badgeTextCompact: { fontSize: 10.5 },
-  impactText: { fontFamily: fonts.semiBold, fontSize: 10.5 },
+  impactText: { color: colors.textFaint, fontFamily: fonts.semiBold, fontSize: 10.5 },
+  impactTextHigh: { color: colors.text, fontFamily: fonts.bold },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: fonts.monoBold },
   choiceChip: {
     alignItems: 'center',
     borderColor: colors.border,
-    borderRadius: 20,
+    borderRadius: radius.md,
     borderWidth: 1,
     flexDirection: 'row',
     gap: 5,
     paddingHorizontal: 11,
     paddingVertical: 7,
   },
-  choiceChipSelected: { backgroundColor: colors.brandDim, borderColor: colors.brand },
+  choiceChipSelected: { backgroundColor: colors.surfaceHi, borderColor: colors.borderHi },
   choiceText: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 11.5 },
-  choiceTextSelected: { color: colors.brand },
+  choiceTextSelected: { color: colors.text },
   pressed: { opacity: 0.72 },
-  toggle: { width: 42, height: 24, borderRadius: 12, padding: 3, backgroundColor: colors.surfaceHi },
-  toggleOn: { backgroundColor: colors.brand },
+  toggle: { width: 42, height: 24, borderRadius: radius.md, padding: 3, backgroundColor: colors.surfaceHi },
+  toggleOn: { backgroundColor: colors.text },
   toggleThumb: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.textDim },
-  toggleThumbOn: { backgroundColor: colors.text, transform: [{ translateX: 18 }] },
+  toggleThumbOn: { backgroundColor: colors.bg, transform: [{ translateX: 18 }] },
   confidenceWrap: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  confidenceTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.surfaceHi, overflow: 'hidden' },
-  confidenceFill: { height: 4, borderRadius: 2, backgroundColor: colors.brand },
-  confidenceText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10.5 },
+  confidenceTrack: { flex: 1, height: 2, backgroundColor: colors.flatDim, overflow: 'hidden' },
+  confidenceFill: { height: 2, backgroundColor: colors.textDim },
+  confidenceText: { color: colors.textFaint, fontFamily: fonts.mono, fontSize: 10.5 , ...tabular },
 });

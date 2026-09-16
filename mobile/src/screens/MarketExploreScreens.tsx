@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Landmark, LineChart, Search, Star } from 'lucide-react-native';
 
 import { majorIndices, stocks, sectors, initialQuotes } from '../data';
-import { colors, fonts, hitSlop } from '../theme';
+import { colors, fonts, hitSlop, radius, tabular } from '../theme';
 import type { MarketRowData, Quote, Stock } from '../types';
 import { ChangePill, ChoiceChip, ScreenHeader, StockAvatar } from '../components/Ui';
 
@@ -65,7 +64,7 @@ export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
   return (
     <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
       <ScreenHeader title="Markets" subtitle="Delayed context from free and official sources" />
-      <LinearGradient colors={[colors.brandDim, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.driverCard}>
+      <View style={styles.driverCard}>
         <Text style={styles.driverQuestion}>Why is the market moving?</Text>
         <Text style={styles.driverAnswer}>
           The evidence map points to restrictive long yields, resilient AI capital spending, and narrow index breadth as today’s main drivers.
@@ -77,7 +76,7 @@ export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
             </Text>
           ))}
         </View>
-      </LinearGradient>
+      </View>
 
       <MarketGroup title="Major indices" rows={majorIndices} />
       <MarketGroup title="Global markets" rows={globalMarkets} />
@@ -133,7 +132,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
   return (
     <View style={styles.assetRow}>
       <View style={styles.assetIdentity}>
-        <StockAvatar ticker={stock.ticker} color={stock.color} size={34} />
+        <StockAvatar ticker={stock.ticker} size={32} />
         <View style={styles.assetCopy}>
           <Text style={styles.assetTicker}>${stock.ticker}</Text>
           <Text style={styles.assetName} numberOfLines={1}>{stock.name}</Text>
@@ -145,7 +144,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
           <ChangePill value={quote.change} />
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`${watching ? 'Remove' : 'Add'} ${stock.ticker} ${watching ? 'from' : 'to'} watchlist`} hitSlop={hitSlop} onPress={() => onToggleWatch(stock.ticker)}>
-          <Star size={17} color={watching ? colors.amber : colors.textFaint} fill={watching ? colors.amber : 'transparent'} />
+          <Star size={16} color={watching ? colors.text : colors.textFaint} fill={watching ? colors.text : 'transparent'} />
         </Pressable>
       </View>
     </View>
@@ -213,33 +212,33 @@ export function ExploreScreen({ quotes, watchlist, onToggleWatch }: { quotes: Re
 
 const styles = StyleSheet.create({
   screenContent: { paddingBottom: 112, paddingHorizontal: 16, paddingTop: 14 },
-  driverCard: { borderColor: colors.border, borderRadius: 16, borderWidth: 1, marginBottom: 20, marginTop: 14, padding: 16 },
+  driverCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, marginBottom: 20, marginTop: 14, padding: 16 },
   driverQuestion: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12, marginBottom: 4 },
   driverAnswer: { color: colors.text, fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 20, marginBottom: 10 },
   moverRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mover: { borderRadius: 8, fontFamily: fonts.mono, fontSize: 11, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 },
+  mover: { borderRadius: radius.sm, fontFamily: fonts.mono, fontSize: 11, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 , ...tabular },
   group: { marginBottom: 20 },
   groupTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 6, marginBottom: 8 },
   groupTitle: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase' },
-  groupCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, paddingHorizontal: 13 },
+  groupCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, paddingHorizontal: 13 },
   marketRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 44, paddingVertical: 9 },
   marketName: { color: colors.text, flex: 1, fontFamily: fonts.semiBold, fontSize: 12.5, paddingRight: 10 },
   marketQuote: { alignItems: 'center', flexDirection: 'row', gap: 9 },
-  marketValue: { color: colors.text, fontFamily: fonts.mono, fontSize: 11.5 },
-  bps: { fontFamily: fonts.monoSemiBold, fontSize: 10.5, minWidth: 48, textAlign: 'right' },
+  marketValue: { color: colors.text, fontFamily: fonts.mono, fontSize: 11.5 , ...tabular },
+  bps: { fontFamily: fonts.monoSemiBold, fontSize: 10.5, minWidth: 48, textAlign: 'right' , ...tabular },
   rowDivider: { backgroundColor: colors.border, height: 1 },
   sectionLabel: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 12, letterSpacing: 0.6, marginBottom: 10, textTransform: 'uppercase' },
   sectorBlock: { marginBottom: 14 },
   sectorLabel: { color: colors.textFaint, fontFamily: fonts.bold, fontSize: 11.5, marginBottom: 3 },
-  evidenceCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginBottom: 10, padding: 13 },
+  evidenceCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, marginBottom: 10, padding: 13 },
   evidenceHeader: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   evidenceName: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
   evidenceRole: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 1 },
-  factTag: { backgroundColor: colors.brandDim, borderRadius: 6, color: colors.brand, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
-  scenarioTag: { backgroundColor: colors.amberDim, borderRadius: 6, color: colors.amber, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
+  factTag: { backgroundColor: colors.flatDim, borderColor: colors.borderHi, borderRadius: radius.sm, borderWidth: 1, color: colors.text, fontFamily: fonts.monoBold, fontSize: 9, letterSpacing: 1, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
+  scenarioTag: { backgroundColor: 'transparent', borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, color: colors.textDim, fontFamily: fonts.monoBold, fontSize: 9, letterSpacing: 1, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
   evidenceText: { color: colors.text, fontFamily: fonts.regular, fontSize: 13, fontStyle: 'italic', lineHeight: 19, marginBottom: 8 },
   evidenceMeta: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11 },
-  searchBox: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: 8, marginBottom: 12, marginTop: 14, paddingHorizontal: 12 },
+  searchBox: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: 8, marginBottom: 12, marginTop: 14, paddingHorizontal: 12 },
   searchInput: { color: colors.text, flex: 1, fontFamily: fonts.regular, fontSize: 13.5, height: 42 },
   chips: { gap: 7, paddingBottom: 16 },
   exploreGroup: { marginBottom: 22 },
@@ -253,6 +252,6 @@ const styles = StyleSheet.create({
   assetName: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 10.5, marginTop: 2 },
   assetQuote: { alignItems: 'center', flexDirection: 'row', gap: 12 },
   assetPriceBlock: { alignItems: 'flex-end', gap: 3 },
-  assetPrice: { color: colors.text, fontFamily: fonts.mono, fontSize: 11.5 },
+  assetPrice: { color: colors.text, fontFamily: fonts.mono, fontSize: 11.5 , ...tabular },
   empty: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 13, padding: 30, textAlign: 'center' },
 });

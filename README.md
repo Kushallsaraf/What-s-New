@@ -1,68 +1,54 @@
-# What's New — native mobile MVP
+# What's New — market intelligence MVP
 
-An evidence-first market-research app for iOS and Android. It answers “what changed, why might it matter, and what would change the view?” without giving direct buy or sell instructions.
+Evidence-first market research for iOS and Android. The product answers what happened, which tickers could be affected and why, and what quantitative data suggests — without buy/sell instructions.
 
-## Primary client: React Native
+## Layout
 
-The product now lives in [`mobile/`](mobile/). It is an Expo/React Native app built from the supplied Claude mobile artifacts as the visual source of truth: the same trading-terminal palette, Manrope and IBM Plex Mono typography, research cards, five-tab navigation, watchlist, profile controls, detail views, and Ask AI overlay.
+| Path | Role |
+| --- | --- |
+| [`mobile/`](mobile/) | Expo / React Native client |
+| [`pipeline/`](pipeline/) | FastAPI, ingest jobs, signal engine, Kronos adapter |
+| [`supabase/migrations/`](supabase/migrations/) | PostgreSQL schema |
+| [`deploy/`](deploy/) | Cloud Run Dockerfiles, schedule, provision scripts |
+| [`docs/`](docs/) | Architecture, data sources, model policy, cloud readiness |
 
-The previous root web app remains as a legacy validation prototype and API-contract reference. It is not the product target.
+## Local bring-up
 
-## What works in the mobile MVP
+1. Copy [`.env.example`](.env.example) to `.env` and fill Supabase / Alpaca / Finnhub / LLM keys.
+2. Apply [`supabase/migrations/20260322000000_init.sql`](supabase/migrations/20260322000000_init.sql) in the Supabase SQL editor.
+3. Install and run the API:
 
-- Morning briefing with evidence, scenarios, risks, and confidence
-- Event-driven in-app research alerts
-- Periodic watchlist-update preferences
-- Supplementary end-of-day setting, disabled by default
-- Persistent on-device watchlist, interests, and alert preferences
-- Explore, Markets, Watchlist, Profile, source-linked research detail, and Ask AI flows
-- Bundled delayed demo snapshot with an optional compact API endpoint
-- Python rolling-origin baseline benchmark
-- Optional Kronos Mini/Small zero-shot adapter with an explicit retention gate
+```bash
+cd pipeline
+pip install -e ".[api,data,llm]"
+PYTHONPATH=src uvicorn whats_new.api.main:app --reload --port 8000
+```
 
-All bundled prices and readings are fixed demo data and clearly labeled delayed. The next data milestone is connecting scheduled official-source pulls and a legally displayable free price source.
+4. Run jobs (same entrypoint Cloud Run will use):
 
-## Run it on a phone
+```bash
+PYTHONPATH=src python -m whats_new.jobs run market_data
+PYTHONPATH=src python -m whats_new.jobs run news_ingest
+```
 
-Requirements: Node.js 22.13+ or 24.3+, npm, and the free Expo Go app.
+5. Start the phone app:
 
 ```bash
 cd mobile
 npm install
-npm start
+EXPO_PUBLIC_RESEARCH_API_URL=http://127.0.0.1:8000 npm start
 ```
 
-Scan the QR code with Expo Go. The same codebase runs on both iOS and Android.
+Optional: set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` for Auth + synced watchlists.
 
-Optional: set `EXPO_PUBLIC_RESEARCH_API_URL` to the base URL of a compatible API. Without it, the app safely uses the bundled delayed snapshot.
-
-Quality checks:
+## Capability doctor
 
 ```bash
-cd mobile
-npm run typecheck
-npx expo-doctor
-npx expo export --platform ios
-npx expo export --platform android
+cd pipeline && PYTHONPATH=src python -m whats_new.doctor
 ```
 
-## Research pipeline
-
-The baseline suite uses only the Python standard library:
-
-```bash
-cd pipeline
-PYTHONPATH=src python3 -m unittest discover -s tests
-```
-
-See [`pipeline/README.md`](pipeline/README.md) for the optional Kronos evaluation. Kronos never runs on the phone and remains disabled unless Mini or Small repeatedly beats the simple baselines.
-
-## Architecture
-
-The phone is a thin native client. Heavy source pulls, document processing, and optional model inference belong in scheduled Python jobs that emit compact, source-linked JSON. This keeps mobile memory use small even if a research worker needs substantially more RAM.
-
-See [`docs/architecture.md`](docs/architecture.md), [`docs/data-sources.md`](docs/data-sources.md), and [`docs/model-policy.md`](docs/model-policy.md).
+Cloud adoption is a per-capability `WN_*` flip — see [docs/cloud-readiness.md](docs/cloud-readiness.md) and [docs/deployment.md](docs/deployment.md).
 
 ## Important limitation
 
-This project is research software. It presents evidence and uncertainty and is not personalized investment advice. No execution or brokerage integration is included.
+Research software only. Not personalized investment advice. No brokerage or automatic trading.
