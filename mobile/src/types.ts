@@ -1,7 +1,7 @@
 export type Sentiment = 'bullish' | 'bearish' | 'neutral';
 export type Impact = 'High' | 'Medium' | 'Low';
 
-export type AppTab = 'new' | 'markets' | 'explore' | 'profile';
+export type AppTab = 'new' | 'markets' | 'explore' | 'watchlist' | 'profile';
 
 export type Stock = {
   ticker: string;

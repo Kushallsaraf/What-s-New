@@ -12,11 +12,14 @@ import { IBMPlexMono_700Bold } from '@expo-google-fonts/ibm-plex-mono/700Bold';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { Compass, LineChart, Newspaper, User } from 'lucide-react-native';
+import { Compass, LineChart, Newspaper, Sparkles, User, Wallet } from 'lucide-react-native';
 import { SafeAreaProvider, SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AskResearchModal } from './src/components/AskResearchModal';
+import { BriefingModal } from './src/components/BriefingModal';
 import { DetailModal } from './src/components/DetailModal';
 import { seedFeedItems } from './src/data';
+import { feedEventToNewsItem } from './src/feedMap';
 import { authConfigured, getSession, getSupabase } from './src/services/auth';
 import {
   bundledSnapshot,
@@ -28,6 +31,7 @@ import {
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ExploreScreen, MarketsScreen } from './src/screens/MarketExploreScreens';
 import { ProfileScreen, type NotificationSettings } from './src/screens/ProfileScreen';
+import { WatchlistScreen } from './src/screens/WatchlistScreen';
 import { colors, fonts } from './src/theme';
 import type { AppTab, NewsItem } from './src/types';
 
@@ -51,6 +55,8 @@ function AppShell() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<AppTab>('new');
   const [openItem, setOpenItem] = useState<NewsItem | null>(null);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [briefingOpen, setBriefingOpen] = useState(false);
   const [watchlist, setWatchlist] = useState(['NVDA', 'AAPL', 'MSFT', 'TSLA']);
   const [preferences, setPreferences] = useState(['Technology', 'AI', 'Fixed income']);
   const [showMemes, setShowMemes] = useState(true);
@@ -94,6 +100,11 @@ function AppShell() {
   }, [accessToken, hydrated, watchlist]);
 
   const quotes = research.quotes;
+  const feedItems = research.feedItems.length ? research.feedItems : seedFeedItems;
+  const news = useMemo(
+    () => feedItems.map(feedEventToNewsItem).filter((item): item is NewsItem => Boolean(item)),
+    [feedItems],
+  );
 
   useEffect(() => {
     async function hydrate() {
@@ -142,6 +153,7 @@ function AppShell() {
   const screen = useMemo(() => {
     if (tab === 'markets') return <MarketsScreen quotes={quotes} />;
     if (tab === 'explore') return <ExploreScreen quotes={quotes} watchlist={watchlist} onToggleWatch={toggleWatch} />;
+    if (tab === 'watchlist') return <WatchlistScreen watchlist={watchlist} quotes={quotes} news={news} onToggleWatch={toggleWatch} onOpen={setOpenItem} />;
     if (tab === 'profile') {
       return (
         <ProfileScreen
@@ -158,18 +170,19 @@ function AppShell() {
     }
     return (
       <HomeScreen
-        feedItems={research.feedItems.length ? research.feedItems : seedFeedItems}
+        feedItems={feedItems}
         quiet={research.quiet}
         quietMessage={research.quietMessage}
+        quotes={quotes}
         watchlist={watchlist}
         preferences={preferences}
         showMemes={showMemes}
-        briefing={research.briefing}
         onOpen={setOpenItem}
+        onOpenBriefing={() => setBriefingOpen(true)}
         onToggleWatch={toggleWatch}
       />
     );
-  }, [authEmail, notifications, preferences, quotes, research, showMemes, tab, watchlist]);
+  }, [authEmail, feedItems, news, notifications, preferences, quotes, research.briefing, research.quiet, research.quietMessage, showMemes, tab, watchlist]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -177,10 +190,21 @@ function AppShell() {
       <View style={styles.app}>
         <View style={styles.screen}>{screen}</View>
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open AI research assistant"
+          onPress={() => setAssistantOpen(true)}
+          style={({ pressed }) => [styles.assistantButton, { bottom: 82 + Math.max(insets.bottom, 6) }, pressed && styles.pressed]}
+        >
+          <Sparkles size={20} color={colors.white} />
+        </Pressable>
+
         <BottomNavigation tab={tab} onChange={setTab} bottomInset={insets.bottom} />
       </View>
 
       <DetailModal item={openItem} quote={openItem ? quotes[openItem.ticker] : undefined} onClose={() => setOpenItem(null)} />
+      <BriefingModal briefing={research.briefing} visible={briefingOpen} onClose={() => setBriefingOpen(false)} />
+      <AskResearchModal visible={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </SafeAreaView>
   );
 }
@@ -190,6 +214,7 @@ function BottomNavigation({ tab, onChange, bottomInset }: { tab: AppTab; onChang
     { id: 'new' as const, label: "What's New", Icon: Newspaper },
     { id: 'markets' as const, label: 'Markets', Icon: LineChart },
     { id: 'explore' as const, label: 'Explore', Icon: Compass },
+    { id: 'watchlist' as const, label: 'Watchlist', Icon: Wallet },
     { id: 'profile' as const, label: 'Profile', Icon: User },
   ];
 
@@ -205,7 +230,7 @@ function BottomNavigation({ tab, onChange, bottomInset }: { tab: AppTab; onChang
             onPress={() => onChange(id)}
             style={({ pressed }) => [styles.navItem, pressed && styles.pressed]}
           >
-            <Icon size={19} color={active ? colors.text : colors.textFaint} strokeWidth={active ? 2.2 : 1.8} />
+            <Icon size={19} color={active ? colors.brand : colors.textFaint} strokeWidth={active ? 2.4 : 2} />
             <Text style={[styles.navLabel, active && styles.navLabelActive]}>{label}</Text>
           </Pressable>
         );
@@ -245,9 +270,10 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: colors.bg, flex: 1, maxWidth: 430, width: '100%' },
   app: { backgroundColor: colors.bg, flex: 1, position: 'relative' },
   screen: { flex: 1 },
+  assistantButton: { alignItems: 'center', backgroundColor: colors.brand, borderRadius: 24, elevation: 8, height: 48, justifyContent: 'center', position: 'absolute', right: 16, shadowColor: colors.brand, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 12, width: 48, zIndex: 21 },
   bottomNav: { backgroundColor: colors.bgElevated, borderTopColor: colors.border, borderTopWidth: 1, bottom: 0, flexDirection: 'row', left: 0, position: 'absolute', right: 0, zIndex: 20 },
   navItem: { alignItems: 'center', flex: 1, gap: 3, justifyContent: 'center' },
   navLabel: { color: colors.textFaint, fontFamily: fonts.medium, fontSize: 9.5 },
-  navLabelActive: { color: colors.text, fontFamily: fonts.bold },
+  navLabelActive: { color: colors.brand, fontFamily: fonts.bold },
   pressed: { opacity: 0.7 },
 });

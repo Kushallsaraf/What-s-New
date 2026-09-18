@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Landmark, LineChart, Search, Star } from 'lucide-react-native';
 
 import { majorIndices, stocks, sectors, initialQuotes } from '../data';
@@ -64,7 +65,7 @@ export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
   return (
     <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
       <ScreenHeader title="Markets" subtitle="Delayed context from free and official sources" />
-      <View style={styles.driverCard}>
+      <LinearGradient colors={[colors.brandDim, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.driverCard}>
         <Text style={styles.driverQuestion}>Why is the market moving?</Text>
         <Text style={styles.driverAnswer}>
           The evidence map points to restrictive long yields, resilient AI capital spending, and narrow index breadth as today’s main drivers.
@@ -76,7 +77,7 @@ export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
             </Text>
           ))}
         </View>
-      </View>
+      </LinearGradient>
 
       <MarketGroup title="Major indices" rows={majorIndices} />
       <MarketGroup title="Global markets" rows={globalMarkets} />
@@ -132,7 +133,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
   return (
     <View style={styles.assetRow}>
       <View style={styles.assetIdentity}>
-        <StockAvatar ticker={stock.ticker} size={32} />
+        <StockAvatar ticker={stock.ticker} sector={stock.sector} size={28} />
         <View style={styles.assetCopy}>
           <Text style={styles.assetTicker}>${stock.ticker}</Text>
           <Text style={styles.assetName} numberOfLines={1}>{stock.name}</Text>
@@ -144,7 +145,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
           <ChangePill value={quote.change} />
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={`${watching ? 'Remove' : 'Add'} ${stock.ticker} ${watching ? 'from' : 'to'} watchlist`} hitSlop={hitSlop} onPress={() => onToggleWatch(stock.ticker)}>
-          <Star size={16} color={watching ? colors.text : colors.textFaint} fill={watching ? colors.text : 'transparent'} />
+          <Star size={16} color={watching ? colors.amber : colors.textFaint} fill={watching ? colors.amber : 'transparent'} />
         </Pressable>
       </View>
     </View>
@@ -234,8 +235,8 @@ const styles = StyleSheet.create({
   evidenceHeader: { alignItems: 'flex-start', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   evidenceName: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
   evidenceRole: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 1 },
-  factTag: { backgroundColor: colors.flatDim, borderColor: colors.borderHi, borderRadius: radius.sm, borderWidth: 1, color: colors.text, fontFamily: fonts.monoBold, fontSize: 9, letterSpacing: 1, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
-  scenarioTag: { backgroundColor: 'transparent', borderColor: colors.border, borderRadius: radius.sm, borderWidth: 1, color: colors.textDim, fontFamily: fonts.monoBold, fontSize: 9, letterSpacing: 1, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
+  factTag: { backgroundColor: colors.brandDim, borderRadius: 6, color: colors.brand, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
+  scenarioTag: { backgroundColor: colors.amberDim, borderRadius: 6, color: colors.amber, fontFamily: fonts.extraBold, fontSize: 9.5, letterSpacing: 0.5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2 },
   evidenceText: { color: colors.text, fontFamily: fonts.regular, fontSize: 13, fontStyle: 'italic', lineHeight: 19, marginBottom: 8 },
   evidenceMeta: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11 },
   searchBox: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', gap: 8, marginBottom: 12, marginTop: 14, paddingHorizontal: 12 },

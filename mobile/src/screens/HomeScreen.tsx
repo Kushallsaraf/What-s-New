@@ -1,134 +1,137 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Bell, ChevronRight } from 'lucide-react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Bell, X } from 'lucide-react-native';
 
-import { colors, fonts, radius, tabular } from '../theme';
-import type { Briefing, FeedItem, NewsItem, Sentiment } from '../types';
-import { EventCard } from '../components/EventCard';
+import { NewsCard } from '../components/NewsCard';
 import { OutcomeCard, PredictionCard, ReportFeedCard, SectorCard } from '../components/FeedCards';
-import { ChoiceChip, ConfidenceMeter, LiveDot, ScreenHeader } from '../components/Ui';
-import { eventPayloadOf, stockMeta } from '../feedMap';
+import { ChoiceChip, LiveDot, ScreenHeader } from '../components/Ui';
+import { feedEventToNewsItem } from '../feedMap';
+import { colors, fonts, hitSlop } from '../theme';
+import type { FeedItem, NewsItem, Quote, Sentiment } from '../types';
 
 type Props = {
   feedItems: FeedItem[];
   quiet?: boolean;
   quietMessage?: string | null;
+  quotes: Record<string, Quote>;
   watchlist: string[];
   preferences: string[];
   showMemes: boolean;
-  briefing: Briefing;
   onOpen: (item: NewsItem) => void;
+  onOpenBriefing: () => void;
   onToggleWatch: (ticker: string) => void;
 };
 
 const filters: Array<'all' | Sentiment> = ['all', 'bullish', 'bearish', 'neutral'];
+const aiTickers = new Set(['NVDA', 'AVGO', 'MSFT', 'GOOGL', 'AMZN', 'META']);
+
+function matchesInterest(item: NewsItem, interest: string): boolean {
+  if (interest === 'AI') return aiTickers.has(item.ticker);
+  return item.sector === interest;
+}
 
 export function HomeScreen({
   feedItems,
   quiet,
   quietMessage,
+  quotes,
   watchlist,
   preferences,
   showMemes,
-  briefing,
   onOpen,
+  onOpenBriefing,
   onToggleWatch,
 }: Props) {
   const [filter, setFilter] = useState<'all' | Sentiment>('all');
+  const [showAlert, setShowAlert] = useState(true);
 
-  /** The sentiment filter applies to everything on screen, promoted cards
-   *  included — otherwise the page can show a bullish card while claiming
-   *  there are no bullish events. */
-  const visible = useMemo(() => {
-    if (filter === 'all') return feedItems;
-    return feedItems.filter((item) => {
-      const payload = eventPayloadOf(item);
-      // Non-event cards (predictions, sectors, reports) carry no sentiment.
-      return payload ? payload.sentiment === filter : false;
-    });
-  }, [feedItems, filter]);
+  const news = useMemo(
+    () => feedItems.map(feedEventToNewsItem).filter((item): item is NewsItem => Boolean(item)),
+    [feedItems],
+  );
+  const filtered = filter === 'all' ? news : news.filter((item) => item.sentiment === filter);
 
-  /** Events whose affected tickers sit in a sector the user follows. */
   const personalized = useMemo(() => {
-    if (!preferences.length) return [];
-    return visible
-      .filter((item) => {
-        const payload = eventPayloadOf(item);
-        if (!payload) return false;
-        return payload.tickers.some((t) => preferences.includes(stockMeta(t.ticker).sector));
-      })
-      .slice(0, 2);
-  }, [visible, preferences]);
-
-  const personalizedSector = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const item of personalized) {
-      const payload = eventPayloadOf(item);
-      const match = payload?.tickers.find((t) => preferences.includes(stockMeta(t.ticker).sector));
-      if (match) map.set(item.id, stockMeta(match.ticker).sector);
+    const selected: Array<{ interest: string; item: NewsItem }> = [];
+    const used = new Set<string>();
+    for (const interest of preferences) {
+      const match = news
+        .filter((item) => !used.has(item.id) && matchesInterest(item, interest))
+        .sort((a, b) => b.confidence - a.confidence)[0];
+      if (match) {
+        selected.push({ interest, item: match });
+        used.add(match.id);
+      }
+      if (selected.length === 2) break;
     }
-    return map;
-  }, [personalized, preferences]);
+    return selected;
+  }, [news, preferences]);
 
-  /** The main feed excludes anything already promoted above it, so one event
-   *  is never rendered twice on the same screen. */
-  const feed = useMemo(() => {
-    const promoted = new Set(personalized.map((item) => item.id));
-    return visible.filter((item) => !promoted.has(item.id));
-  }, [visible, personalized]);
+  const alert = news.find((item) => item.live) ?? news[0];
+  const nonEventItems = filter === 'all' ? feedItems.filter((item) => item.card_type !== 'event') : [];
 
-  const nothingToShow = !personalized.length && !feed.length;
-
-  function renderCard(item: FeedItem) {
+  function renderSupplementaryCard(item: FeedItem) {
     if (item.card_type === 'prediction') return <PredictionCard key={item.id} item={item} />;
     if (item.card_type === 'sector') return <SectorCard key={item.id} item={item} />;
     if (item.card_type === 'outcome') return <OutcomeCard key={item.id} item={item} />;
     if (item.card_type === 'report') return <ReportFeedCard key={item.id} item={item} />;
-    return (
-      <EventCard
-        key={item.id}
-        item={item}
-        watchlist={watchlist}
-        showMeme={showMemes}
-        onOpen={onOpen}
-        onToggleWatch={onToggleWatch}
-      />
-    );
+    return null;
   }
 
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <ScreenHeader
         title="What's New"
-        subtitle="Signal, not noise — updating as free sources refresh"
+        subtitle="Signal, not noise — updating as sources refresh"
         action={
-          <View style={styles.bellWrap}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open morning briefing"
+            hitSlop={hitSlop}
+            onPress={onOpenBriefing}
+            style={({ pressed }) => [styles.bellWrap, pressed && styles.pressed]}
+          >
             <Bell size={20} color={colors.text} />
-          </View>
+            <View style={styles.notificationDot} />
+          </Pressable>
         }
       />
       <View style={[styles.liveBesideTitle, styles.noPointerEvents]}>
         <LiveDot />
       </View>
 
-      <View style={styles.briefingCard}>
-        <View style={styles.briefingTop}>
-          <Text style={styles.briefingEyebrow}>{briefing.eyebrow}</Text>
-          <Text style={styles.briefingConfidence}>{briefing.confidence}%</Text>
+      {showAlert && alert ? (
+        <View style={styles.alert}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Open ${alert.ticker} research alert`}
+            onPress={() => onOpen({ ...alert, live: true })}
+            style={({ pressed }) => [styles.alertOpen, pressed && styles.pressed]}
+          >
+            <Text style={styles.alertEmoji}>🚨</Text>
+            <View style={styles.alertCopy}>
+              <Text style={styles.alertTitle}>${alert.ticker} JUST MOVED</Text>
+              <Text style={styles.alertText} numberOfLines={2}>
+                {alert.headline}. Evidence read:{' '}
+                <Text style={alert.sentiment === 'bullish' ? styles.bull : alert.sentiment === 'bearish' ? styles.bear : styles.neutral}>
+                  {alert.sentiment === 'bullish' ? 'Bullish 📈' : alert.sentiment === 'bearish' ? 'Bearish 📉' : 'Neutral'}
+                </Text>
+                {' · '}{alert.confidence}% confidence
+              </Text>
+              {showMemes && alert.meme ? <Text style={styles.alertMeme}>😂 {alert.meme}</Text> : null}
+            </View>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss alert"
+            hitSlop={hitSlop}
+            onPress={() => setShowAlert(false)}
+            style={styles.alertClose}
+          >
+            <X size={14} color={colors.textFaint} />
+          </Pressable>
         </View>
-        <Text style={styles.briefingTitle}>{briefing.title}</Text>
-        <Text style={styles.briefingSummary}>{briefing.summary}</Text>
-        <ConfidenceMeter value={briefing.confidence} />
-        <View style={styles.briefingDivider} />
-        <View style={styles.briefingPoint}>
-          <ChevronRight size={13} color={colors.bull} />
-          <Text style={styles.briefingPointText}>{briefing.scenarios}</Text>
-        </View>
-        <View style={styles.briefingPoint}>
-          <ChevronRight size={13} color={colors.bear} />
-          <Text style={styles.briefingPointText}>{briefing.risks}</Text>
-        </View>
-      </View>
+      ) : null}
 
       {quiet ? (
         <View style={styles.quietBox}>
@@ -137,14 +140,23 @@ export function HomeScreen({
         </View>
       ) : null}
 
-      {personalized.map((item) => (
-        <View key={`personal-${item.id}`} style={styles.personalized}>
-          <Text style={styles.personalizedLabel}>
-            Because you follow {personalizedSector.get(item.id)}
-          </Text>
-          {renderCard(item)}
+      {personalized.length ? (
+        <View style={styles.personalizedGroup}>
+          {personalized.map(({ interest, item }) => (
+            <View key={`${interest}-${item.id}`} style={styles.personalized}>
+              <Text style={styles.personalizedLabel}>Because you follow {interest}</Text>
+              <NewsCard
+                item={item}
+                quote={quotes[item.ticker]}
+                watching={watchlist.includes(item.ticker)}
+                onOpen={onOpen}
+                onToggleWatch={onToggleWatch}
+                showMeme={showMemes}
+              />
+            </View>
+          ))}
         </View>
-      ))}
+      ) : null}
 
       <ScrollView horizontal contentContainerStyle={styles.filters} showsHorizontalScrollIndicator={false}>
         {filters.map((item) => (
@@ -158,13 +170,20 @@ export function HomeScreen({
       </ScrollView>
 
       <View style={styles.feed}>
-        {feed.map(renderCard)}
-        {nothingToShow ? (
-          <Text style={styles.emptyFeed}>
-            {filter === 'all'
-              ? 'No events have cleared the importance bar yet.'
-              : `No ${filter} events right now.`}
-          </Text>
+        {filtered.map((item) => (
+          <NewsCard
+            key={item.id}
+            item={item}
+            quote={quotes[item.ticker]}
+            watching={watchlist.includes(item.ticker)}
+            onOpen={onOpen}
+            onToggleWatch={onToggleWatch}
+            showMeme={showMemes}
+          />
+        ))}
+        {nonEventItems.map(renderSupplementaryCard)}
+        {!filtered.length && !nonEventItems.length ? (
+          <Text style={styles.emptyFeed}>{filter === 'all' ? 'No events have cleared the importance bar yet.' : `No ${filter} events right now.`}</Text>
         ) : null}
       </View>
     </ScrollView>
@@ -173,30 +192,29 @@ export function HomeScreen({
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 112, paddingHorizontal: 16, paddingTop: 14 },
-  bellWrap: { marginRight: 3, position: 'relative' },
+  bellWrap: { marginRight: 3, padding: 2, position: 'relative' },
+  notificationDot: { backgroundColor: colors.bear, borderRadius: 4, height: 8, position: 'absolute', right: 0, top: 0, width: 8 },
   liveBesideTitle: { left: 143, position: 'absolute', top: 21 },
   noPointerEvents: { pointerEvents: 'none' },
-  briefingCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, marginTop: 16, padding: 16 },
-  briefingTop: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 7 },
-  briefingEyebrow: { color: colors.textDim, fontFamily: fonts.monoBold, fontSize: 9.5, letterSpacing: 1.1 },
-  briefingConfidence: { color: colors.textFaint, fontFamily: fonts.monoSemiBold, fontSize: 10 , ...tabular },
-  briefingTitle: { color: colors.text, fontFamily: fonts.extraBold, fontSize: 16, lineHeight: 21, marginBottom: 8 },
-  briefingSummary: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12.5, lineHeight: 18.5, marginBottom: 11 },
-  briefingDivider: { backgroundColor: colors.border, height: 1, marginVertical: 11 },
-  briefingPoint: { alignItems: 'flex-start', flexDirection: 'row', gap: 6, marginBottom: 6 },
-  briefingPointText: { color: colors.textFaint, flex: 1, fontFamily: fonts.regular, fontSize: 11.5, lineHeight: 16 },
-  quietBox: { backgroundColor: colors.surfaceHi, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, marginTop: 14, padding: 12 },
+  alert: { backgroundColor: colors.surfaceHi, borderColor: colors.borderHi, borderRadius: 14, borderWidth: 1, marginTop: 14, overflow: 'hidden', position: 'relative' },
+  alertOpen: { alignItems: 'flex-start', flexDirection: 'row', gap: 10, padding: 12, paddingRight: 34 },
+  alertClose: { padding: 4, position: 'absolute', right: 8, top: 8, zIndex: 2 },
+  alertEmoji: { fontSize: 16 },
+  alertCopy: { flex: 1 },
+  alertTitle: { color: colors.text, fontFamily: fonts.bold, fontSize: 12.5 },
+  alertText: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, marginTop: 2 },
+  alertMeme: { color: colors.amber, fontFamily: fonts.regular, fontSize: 11, fontStyle: 'italic', marginTop: 4 },
+  bull: { color: colors.bull, fontFamily: fonts.bold },
+  bear: { color: colors.bear, fontFamily: fonts.bold },
+  neutral: { color: colors.textDim, fontFamily: fonts.bold },
+  quietBox: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, marginTop: 14, padding: 12 },
   quietTitle: { color: colors.textDim, fontFamily: fonts.bold, fontSize: 12, marginBottom: 4 },
   quietText: { color: colors.textDim, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17 },
-  personalized: { marginTop: 16 },
-  personalizedLabel: { color: colors.textFaint, fontFamily: fonts.semiBold, fontSize: 10.5, letterSpacing: 0.4, marginBottom: 7, textTransform: 'uppercase' },
+  personalizedGroup: { marginTop: 16 },
+  personalized: { marginBottom: 10 },
+  personalizedLabel: { color: colors.brand, fontFamily: fonts.bold, fontSize: 11.5, marginBottom: 6 },
   filters: { gap: 8, paddingBottom: 6, paddingTop: 10 },
   feed: { marginTop: 10 },
-  emptyFeed: {
-    color: colors.textFaint,
-    fontFamily: fonts.regular,
-    fontSize: 12.5,
-    paddingVertical: 18,
-    textAlign: 'center',
-  },
+  emptyFeed: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 12.5, paddingVertical: 18, textAlign: 'center' },
+  pressed: { opacity: 0.75 },
 });

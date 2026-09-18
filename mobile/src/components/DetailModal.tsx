@@ -65,7 +65,7 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
           <Section title="What to watch next">
             {item.watch.map((watchItem) => (
               <View key={watchItem} style={styles.watchRow}>
-                <ChevronRight size={14} color={colors.textFaint} style={styles.watchIcon} />
+                <ChevronRight size={14} color={colors.brand} style={styles.watchIcon} />
                 <Text style={styles.paragraph}>{watchItem}</Text>
               </View>
             ))}
@@ -82,7 +82,7 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
                   <Text style={styles.sourceLabel}>{source.label}</Text>
                   <Text style={styles.sourceType}>{source.type.toUpperCase()} SOURCE</Text>
                 </View>
-                <ExternalLink size={14} color={colors.textFaint} />
+                <ExternalLink size={14} color={colors.brand} />
               </Pressable>
             ))}
           </Section>
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
   toolbarSubtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11, marginTop: 2 },
   content: { padding: 18, paddingBottom: 36 },
   signalRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
-  impactScore: { backgroundColor: colors.flatDim, borderRadius: radius.sm, paddingHorizontal: 9, paddingVertical: 4 },
-  impactScoreText: { color: colors.textDim, fontFamily: fonts.monoSemiBold, fontSize: 11, ...tabular },
+  impactScore: { backgroundColor: colors.amberDim, borderRadius: 20, paddingHorizontal: 9, paddingVertical: 4 },
+  impactScoreText: { color: colors.amber, fontFamily: fonts.bold, fontSize: 11.5, ...tabular },
   headline: { color: colors.text, fontFamily: fonts.extraBold, fontSize: 20, lineHeight: 26, marginBottom: 16 },
   quoteCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, borderWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, padding: 14 },
   quoteRight: { alignItems: 'flex-end' },

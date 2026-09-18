@@ -96,7 +96,7 @@ export function ProfileScreen({
 
       <View style={styles.profileCard}>
         <View style={styles.profileAvatar}>
-          <User size={20} color={colors.textDim} />
+          <User size={20} color={colors.brand} />
         </View>
         <View style={styles.profileCopy}>
           <Text style={styles.profileTitle}>{authEmail || 'Your research feed'}</Text>
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   empty: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 13, padding: 30, textAlign: 'center' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   profileCard: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, borderWidth: 1, flexDirection: 'row', gap: 12, marginBottom: 22, marginTop: 14, padding: 14 },
-  profileAvatar: { alignItems: 'center', backgroundColor: colors.surfaceHi, borderRadius: radius.md, height: 44, justifyContent: 'center', width: 44 },
+  profileAvatar: { alignItems: 'center', backgroundColor: colors.brandDim, borderRadius: 23, height: 46, justifyContent: 'center', width: 46 },
   profileCopy: { flex: 1 },
   profileTitle: { color: colors.text, fontFamily: fonts.bold, fontSize: 14 },
   profileSubtitle: { color: colors.textFaint, fontFamily: fonts.regular, fontSize: 11.5, marginTop: 2 },
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
   authRow: { flexDirection: 'row', gap: 8 },
   authButton: {
     alignItems: 'center',
-    backgroundColor: colors.text,
+    backgroundColor: colors.brand,
     borderRadius: radius.md,
     flex: 1,
     paddingVertical: 10,
@@ -252,6 +252,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
   },
-  authButtonText: { color: colors.bg, fontFamily: fonts.bold, fontSize: 13 },
+  authButtonText: { color: colors.white, fontFamily: fonts.bold, fontSize: 13 },
   authButtonTextSecondary: { color: colors.text, fontFamily: fonts.bold, fontSize: 13 },
 });
