@@ -3,16 +3,16 @@
 ## Runtime boundary
 
 ```text
-News sources (RSS / SEC / Finnhub)     Alpaca bars
-              │                              │
-              ▼                              ▼
-     Cloud Run / local jobs          market_data + momentum
-              │                              │
-              ▼                              │
-     filter → cluster → LLM                  │
-              │                              │
-              ▼                              ▼
-           events ◄──────── signal engine ◄── Kronos (weight 0 until retained)
+News / SEC filings     Official macro sources       Alpaca bars
+        │              Treasury/BLS/FRED/EIA             │
+        ▼                       ▼                        ▼
+ Cloud Run / local jobs  macro_observations   market_data + momentum
+        │                       │                        │
+        ▼                       └─────────┐              │
+ filter → cluster → LLM                  │              │
+        │                                ▼              ▼
+        ▼                         report context   signal engine ◄── Kronos (weight 0)
+     events ──────────────────────────────┴──────────────┘
               │                    │
               ▼                    ▼
          feed_items / reports / alerts
@@ -59,6 +59,12 @@ All jobs share one command so local and Cloud Run stay identical:
 ```bash
 python -m whats_new.jobs run <name>
 ```
+
+Official source ingestion is split by data shape:
+
+- `macro_data` normalizes Treasury, BLS, FRED and EIA observations.
+- `company_fundamentals` normalizes SEC Company Facts/XBRL data.
+- `news_ingest` continues to handle SEC filing events and publisher headlines.
 
 Schedule source of truth: [deploy/schedule.toml](../deploy/schedule.toml).
 

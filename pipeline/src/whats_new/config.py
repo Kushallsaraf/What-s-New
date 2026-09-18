@@ -42,6 +42,14 @@ class Settings:
     alpaca_feed: str
     finnhub_api_key: str
     sec_user_agent: str
+    sec_tickers: tuple[str, ...]
+    fred_api_key: str
+    fred_series: tuple[str, ...]
+    eia_api_key: str
+    eia_series: tuple[str, ...]
+    bls_api_key: str
+    bls_series: tuple[str, ...]
+    macro_sources: tuple[str, ...]
     llm_provider: str
     llm_api_key: str
     llm_model_analysis: str
@@ -75,6 +83,12 @@ def load_settings() -> Settings:
     root = _repo_root()
     news_raw = _env("WN_NEWS_SOURCES", "rss,sec_edgar,finnhub")
     sources = tuple(s.strip() for s in news_raw.split(",") if s.strip())
+    macro_raw = _env("WN_MACRO_SOURCES", "treasury,bls,fred,eia")
+    macro_sources = tuple(s.strip() for s in macro_raw.split(",") if s.strip())
+
+    def csv_env(name: str, default: str) -> tuple[str, ...]:
+        return tuple(value.strip().upper() for value in _env(name, default).split(",") if value.strip())
+
     return Settings(
         database_url=_env("DATABASE_URL"),
         supabase_url=_env("SUPABASE_URL"),
@@ -88,6 +102,28 @@ def load_settings() -> Settings:
             "SEC_USER_AGENT",
             "WhatsNewMVP research@example.com",
         ),
+        sec_tickers=csv_env(
+            "WN_SEC_TICKERS",
+            (
+                "AAPL,MSFT,NVDA,AMZN,META,JPM,XOM,JNJ,"
+                "SOFI,HIMS,IONQ,RKLB,RXST,ACMR,UPWK,"
+                "RY,TD,SHOP,ENB,CNQ,CP,CNI,BMO,"
+                "LSPD,BB,BLDP,SAND,ORLA,EQX,AG"
+            ),
+        ),
+        fred_api_key=_env("FRED_API_KEY"),
+        fred_series=csv_env("FRED_SERIES", "FEDFUNDS,GDPC1,INDPRO,RSAFS"),
+        eia_api_key=_env("EIA_API_KEY"),
+        eia_series=csv_env(
+            "EIA_SERIES",
+            "WCESTUS1,WGTSTUS1,WCRFPUS2,NW2_EPG0_SWO_R48_BCF",
+        ),
+        bls_api_key=_env("BLS_API_KEY"),
+        bls_series=csv_env(
+            "BLS_SERIES",
+            "CUSR0000SA0,CES0000000001,LNS14000000",
+        ),
+        macro_sources=macro_sources,
         llm_provider=_env("WN_LLM_PROVIDER", "openai"),
         llm_api_key=_env("LLM_API_KEY") or _env("OPENAI_API_KEY"),
         llm_model_analysis=_env("LLM_MODEL_ANALYSIS", "gpt-4o-mini"),

@@ -22,7 +22,9 @@ def job(name: str) -> Callable[[JobFn], JobFn]:
 def run_job(name: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     # Import side effects register jobs.
     from whats_new.jobs import (  # noqa: F401
+        company_fundamentals,
         kronos_predict,
+        macro_data,
         market_data,
         news_ingest,
         report,
@@ -76,7 +78,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "list" or args.cmd is None:
         # Ensure registry populated
         from whats_new.jobs import (  # noqa: F401
+            company_fundamentals,
             kronos_predict,
+            macro_data,
             market_data,
             news_ingest,
             report,

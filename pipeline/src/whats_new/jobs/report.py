@@ -27,7 +27,19 @@ def _build_context(limit: int = 20) -> dict[str, Any]:
         signals = sorted(signals, key=lambda r: abs(float(r["overall_score"])), reverse=True)[:15]
     except Exception:
         events, signals = [], []
-    return {"events": events, "top_signals": signals}
+    try:
+        macro = db.fetch_all(
+            """
+            SELECT DISTINCT ON (source, series_id)
+                   source, series_id, series_name, period, value, unit, frequency, source_url
+            FROM macro_observations
+            ORDER BY source, series_id, period DESC, observed_at DESC
+            """
+        )
+    except Exception:
+        # Reports still work while the new migration is being rolled out.
+        macro = []
+    return {"events": events, "top_signals": signals, "macro_observations": macro}
 
 
 def _store_report(report_type: str, content: dict[str, Any]) -> str | None:

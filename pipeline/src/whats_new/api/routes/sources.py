@@ -16,7 +16,12 @@ def sources() -> dict:
             "feed": settings.alpaca_feed,
             "delayed": settings.alpaca_feed == "iex",
         },
-        "macro": ["sec_edgar", "fred", "bls"],
+        "macro": list(settings.macro_sources),
+        "company_fundamentals": "sec_company_facts",
         "restricted": ["london_strategic_edge"],
-        "docs": ["docs/data-sources.md", "docs/cloud-readiness.md"],
+        "docs": [
+            "docs/data-sources.md",
+            "docs/official-data-pipeline.md",
+            "docs/cloud-readiness.md",
+        ],
     }

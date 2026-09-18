@@ -46,7 +46,7 @@ this list. Reuters retired public RSS; the host no longer resolves. It had been
 failing silently because the fetch loop swallowed exceptions — which is why
 failures are now reported.
 
-## Macro / official series (retained)
+## Macro / official series (implemented)
 
 | Source | Use | Cost/access | Product rule |
 | --- | --- | --- | --- |
@@ -55,6 +55,30 @@ failures are now reported.
 | FRED | Macro series normalization | Free key for API; selected CSV without one | Preserve original-series attribution |
 | EIA | Energy inventories and production | Free key | Preserve frequency and units |
 | BEA / CFTC | Economic accounts and positioning | Free access subject to limits | Add only when a briefing needs the series |
+
+`python -m whats_new.jobs run macro_data` now normalizes the implemented rows
+into `macro_observations`. The defaults intentionally avoid duplicating Treasury
+and BLS series through FRED:
+
+- Treasury: 2-, 10-, and 30-year par yields.
+- BLS: CPI, total nonfarm payrolls, and unemployment.
+- FRED: effective federal funds rate, real GDP, industrial production, and retail sales.
+- EIA: crude inventories, gasoline inventories, crude production, and Lower 48 gas storage.
+
+See [official-data-pipeline.md](official-data-pipeline.md) for identifiers and configuration.
+
+## SEC fundamentals
+
+`company_fundamentals` resolves ticker-to-CIK mappings from the SEC's published
+company index, then reads Company Facts/XBRL. It normalizes revenue, net income,
+operating income, diluted EPS, assets, liabilities, cash, and operating cash
+flow from both US GAAP and IFRS taxonomies while retaining accession, form,
+period, unit, filing time, and source URL.
+
+The initial 30-ticker set is a QA/research seed, not a coverage ceiling. Unknown
+EDGAR tickers can be supplied through `WN_SEC_TICKERS` or the job payload without
+code changes. Canadian coverage is currently limited to Canadian companies with
+U.S. listings; TSX-only prices and SEDAR+ filings need a later Canadian provider.
 
 ## London Strategic Edge
 

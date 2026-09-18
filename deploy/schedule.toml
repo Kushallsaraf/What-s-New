@@ -40,6 +40,18 @@ description = "Ingest OHLCV bars for the universe"
 timeout_seconds = 900
 
 [[job]]
+name = "macro_data"
+cron = "15 7,9,11,16 * * 1-5"
+description = "Refresh official macro releases and end-of-day Treasury rates"
+timeout_seconds = 900
+
+[[job]]
+name = "company_fundamentals"
+cron = "10 7,17 * * 1-5"
+description = "Refresh SEC Company Facts for the configured research universe"
+timeout_seconds = 1200
+
+[[job]]
 name = "morning_report"
 cron = "0 8 * * 1-5"
 description = "Morning Brief generation"

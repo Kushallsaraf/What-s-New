@@ -6,21 +6,12 @@ from datetime import datetime, timezone
 
 from whats_new.http_util import http_json
 from whats_new.sources.base import RawArticle
-from whats_new.universe import STOCKS
-
-# Map a few well-known CIKs for high-signal filers in the universe.
-CIK_BY_TICKER: dict[str, str] = {
-    "AAPL": "0000320193",
-    "MSFT": "0000789019",
-    "NVDA": "0001045810",
-    "GOOGL": "0001652044",
-    "AMZN": "0001018724",
-    "META": "0001326801",
-    "TSLA": "0001318605",
-    "JPM": "0000019617",
-    "XOM": "0000034088",
-    "JNJ": "0000200406",
-}
+from whats_new.sources.sec_common import (
+    FALLBACK_COMPANIES,
+    RequestThrottle,
+    SecTickerIndex,
+    sec_headers,
+)
 
 
 class SecEdgarNewsSource:
@@ -36,8 +27,10 @@ class SecEdgarNewsSource:
 
         settings = get_settings()
         self.user_agent = user_agent or settings.sec_user_agent
-        self.tickers = tickers or list(CIK_BY_TICKER.keys())
+        self.tickers = tickers or list(settings.sec_tickers)
         self.timeout = timeout
+        self.index = SecTickerIndex(self.user_agent, timeout=timeout)
+        self.throttle = RequestThrottle()
 
     def fetch_since(self, since: datetime | None = None) -> list[RawArticle]:
         from whats_new.ports import get_telemetry
@@ -45,15 +38,24 @@ class SecEdgarNewsSource:
         telemetry = get_telemetry()
         articles: list[RawArticle] = []
         failures = 0
-        for ticker in self.tickers:
-            cik = CIK_BY_TICKER.get(ticker)
-            if not cik:
-                continue
+        try:
+            companies = self.index.resolve_many(self.tickers)
+        except Exception as exc:
+            telemetry.error("sec_ticker_index_unreachable", exc=exc)
+            companies = [
+                FALLBACK_COMPANIES[ticker.upper()]
+                for ticker in self.tickers
+                if ticker.upper() in FALLBACK_COMPANIES
+            ]
+        for company_info in companies:
+            ticker = company_info.ticker
+            cik = company_info.cik
             url = f"https://data.sec.gov/submissions/CIK{cik}.json"
             try:
+                self.throttle.wait()
                 payload = http_json(
                     url,
-                    headers={"User-Agent": self.user_agent, "Accept-Encoding": "gzip, deflate"},
+                    headers=sec_headers(self.user_agent),
                     fixture_name=f"sec_{ticker}",
                     timeout=self.timeout,
                 )
@@ -74,7 +76,9 @@ class SecEdgarNewsSource:
             primary_docs = recent.get("primaryDocument") or []
             descriptions = recent.get("primaryDocDescription") or []
             for i, form in enumerate(forms[:20]):
-                if form not in {"8-K", "10-K", "10-Q", "6-K", "4", "S-1", "SC 13D", "SC 13G"}:
+                if form not in {
+                    "8-K", "10-K", "10-Q", "6-K", "20-F", "40-F", "4", "S-1", "F-1", "SC 13D", "SC 13G"
+                }:
                     continue
                 filing_date = filings_dates[i] if i < len(filings_dates) else None
                 published = None
@@ -91,10 +95,9 @@ class SecEdgarNewsSource:
                     if accession and doc
                     else None
                 )
-                company = next((s.company_name for s in STOCKS if s.ticker == ticker), ticker)
                 articles.append(
                     RawArticle(
-                        title=f"{company} files Form {form}: {desc}",
+                        title=f"{company_info.title} files Form {form}: {desc}",
                         source="SEC EDGAR",
                         url=link,
                         published_at=published,

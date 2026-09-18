@@ -23,6 +23,8 @@ pip install -e ".[kronos]"        # optional Kronos adapter deps
 export PYTHONPATH=src
 python -m whats_new.jobs list
 python -m whats_new.jobs run market_data
+python -m whats_new.jobs run macro_data
+python -m whats_new.jobs run company_fundamentals
 python -m whats_new.jobs run news_ingest
 python -m whats_new.jobs run kronos_predict
 python -m whats_new.jobs run signals_refresh
@@ -32,6 +34,16 @@ python -m whats_new.jobs run closing_report
 ```
 
 Use `WN_REPLAY=1` (or `--replay`) to read recorded fixtures instead of live APIs.
+
+The official-data jobs can be checked without a database:
+
+```bash
+python -m whats_new.jobs run macro_data --dry-run --payload '{"limit":2,"since_days":120}'
+python -m whats_new.jobs run company_fundamentals --dry-run --payload '{"tickers":["AAPL"],"limit_per_metric":1}'
+```
+
+See [official-data-pipeline.md](../docs/official-data-pipeline.md) for source ownership,
+configuration, storage, schedules, and current coverage limits.
 
 ## API
 

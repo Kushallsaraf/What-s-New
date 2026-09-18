@@ -24,7 +24,15 @@ def main(argv: list[str] | None = None) -> None:
     extra = {
         "llm_provider": settings.llm_provider,
         "news_sources": list(settings.news_sources),
+        "macro_sources": list(settings.macro_sources),
         "alpaca_feed": settings.alpaca_feed,
+        "source_credentials": {
+            "alpaca": bool(settings.alpaca_api_key and settings.alpaca_api_secret),
+            "fred": bool(settings.fred_api_key),
+            "eia": bool(settings.eia_api_key),
+            "bls_registered": bool(settings.bls_api_key),
+            "sec_identity": "@" in settings.sec_user_agent,
+        },
         "signal_weights": {
             "news": settings.signal_weight_news,
             "kronos": settings.signal_weight_kronos,
@@ -52,7 +60,9 @@ def main(argv: list[str] | None = None) -> None:
     print("\nConfig")
     print(f"  llm_provider      {extra['llm_provider']}")
     print(f"  news_sources      {','.join(extra['news_sources'])}")
+    print(f"  macro_sources     {','.join(extra['macro_sources'])}")
     print(f"  alpaca_feed       {extra['alpaca_feed']}")
+    print(f"  source_credentials {extra['source_credentials']}")
     print(f"  signal_weights    {extra['signal_weights']}")
     print(f"  database          {'yes' if extra['database_configured'] else 'no'}")
     print(f"  replay            {extra['replay']}")

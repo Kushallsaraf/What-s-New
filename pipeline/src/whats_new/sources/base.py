@@ -36,6 +36,41 @@ class Bar:
     feed: str = "iex"
 
 
+@dataclass
+class MacroObservation:
+    """One official economic observation with enough context to cite it."""
+
+    source: str
+    series_id: str
+    series_name: str
+    period: datetime
+    value: float
+    unit: str
+    frequency: str
+    source_url: str
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class CompanyFact:
+    """A normalized SEC XBRL fact for one reporting period."""
+
+    ticker: str
+    cik: str
+    metric: str
+    label: str
+    period_end: datetime
+    value: float
+    unit: str
+    form: str
+    filed_at: datetime | None = None
+    fiscal_year: int | None = None
+    fiscal_period: str = ""
+    accession: str = ""
+    source_url: str = ""
+    raw: dict[str, Any] = field(default_factory=dict)
+
+
 class NewsSource(Protocol):
     name: str
 
@@ -54,3 +89,14 @@ class MarketDataSource(Protocol):
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> list[Bar]: ...
+
+
+class MacroDataSource(Protocol):
+    name: str
+
+    def fetch_observations(
+        self,
+        *,
+        since: datetime | None = None,
+        limit: int = 100,
+    ) -> list[MacroObservation]: ...

@@ -14,8 +14,8 @@ Evidence-first market research for iOS and Android. The product answers what hap
 
 ## Local bring-up
 
-1. Copy [`.env.example`](.env.example) to `.env` and fill Supabase / Alpaca / Finnhub / LLM keys.
-2. Apply [`supabase/migrations/20260322000000_init.sql`](supabase/migrations/20260322000000_init.sql) in the Supabase SQL editor.
+1. Copy [`.env.example`](.env.example) to `.env` and fill the required Alpaca, FRED and EIA credentials. Finnhub and an LLM remain optional.
+2. Apply the SQL files in [`supabase/migrations/`](supabase/migrations/) in filename order in the Supabase SQL editor.
 3. Install and run the API:
 
 ```bash
@@ -28,6 +28,8 @@ PYTHONPATH=src uvicorn whats_new.api.main:app --reload --port 8000
 
 ```bash
 PYTHONPATH=src python -m whats_new.jobs run market_data
+PYTHONPATH=src python -m whats_new.jobs run macro_data
+PYTHONPATH=src python -m whats_new.jobs run company_fundamentals
 PYTHONPATH=src python -m whats_new.jobs run news_ingest
 ```
 
@@ -48,6 +50,10 @@ cd pipeline && PYTHONPATH=src python -m whats_new.doctor
 ```
 
 Cloud adoption is a per-capability `WN_*` flip — see [docs/cloud-readiness.md](docs/cloud-readiness.md) and [docs/deployment.md](docs/deployment.md).
+
+The implemented free-source contracts, schedules, schemas, verification status,
+and current Canadian-coverage boundary are recorded in
+[docs/official-data-pipeline.md](docs/official-data-pipeline.md).
 
 ## Important limitation
 
