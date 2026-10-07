@@ -56,7 +56,9 @@ function MarketGroup({ title, rows, bps = false }: { title: string; rows: Market
   );
 }
 
-export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
+const SAMPLE_PRICES = 'Sample prices and index levels — not live market data';
+
+export function MarketsScreen({ quotes, pricesLive }: { quotes: Record<string, Quote>; pricesLive: boolean }) {
   const movers = stocks
     .map((stock) => ({ stock, quote: quotes[stock.ticker] ?? initialQuotes[stock.ticker] }))
     .sort((a, b) => Math.abs(b.quote.change) - Math.abs(a.quote.change))
@@ -64,7 +66,7 @@ export function MarketsScreen({ quotes }: { quotes: Record<string, Quote> }) {
 
   return (
     <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
-      <ScreenHeader title="Markets" subtitle="Delayed context from free and official sources" />
+      <ScreenHeader title="Markets" subtitle={pricesLive ? 'Delayed context from free and official sources' : SAMPLE_PRICES} />
       <LinearGradient colors={[colors.brandDim, colors.surface]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.driverCard}>
         <Text style={styles.driverQuestion}>Why is the market moving?</Text>
         <Text style={styles.driverAnswer}>
@@ -152,7 +154,7 @@ export function AssetRow({ stock, quote, watching, onToggleWatch }: { stock: Sto
   );
 }
 
-export function ExploreScreen({ quotes, watchlist, onToggleWatch }: { quotes: Record<string, Quote>; watchlist: string[]; onToggleWatch: (ticker: string) => void }) {
+export function ExploreScreen({ quotes, pricesLive, watchlist, onToggleWatch }: { quotes: Record<string, Quote>; pricesLive: boolean; watchlist: string[]; onToggleWatch: (ticker: string) => void }) {
   const [query, setQuery] = useState('');
   const [sector, setSector] = useState('All');
   const filtered = useMemo(
@@ -166,7 +168,7 @@ export function ExploreScreen({ quotes, watchlist, onToggleWatch }: { quotes: Re
 
   return (
     <ScrollView contentContainerStyle={styles.screenContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-      <ScreenHeader title="Explore" subtitle={`${stocks.length} assets across ${sectors.length} themes · delayed prices`} />
+      <ScreenHeader title="Explore" subtitle={`${stocks.length} assets across ${sectors.length} themes · ${pricesLive ? 'delayed prices' : 'sample prices, not live'}`} />
       <View style={styles.searchBox}>
         <Search size={15} color={colors.textFaint} />
         <TextInput

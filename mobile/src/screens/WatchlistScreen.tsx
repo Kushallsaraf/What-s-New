@@ -22,12 +22,12 @@ export function WatchlistScreen({ watchlist, quotes, news, onToggleWatch, onOpen
         {watchlist.map((ticker) => {
           const stock = stocks.find((item) => item.ticker === ticker);
           const quote = quotes[ticker];
-          if (!stock || !quote) return null;
+          if (!stock) return null;
           return (
             <View key={ticker} style={styles.watchRow}>
               <View style={styles.watchCopy}><Text style={styles.watchTicker}>${ticker}</Text><Text style={styles.watchName} numberOfLines={1}>{stock.name}</Text></View>
               <View style={styles.watchQuote}>
-                <View style={styles.watchPriceBlock}><Text style={styles.watchPrice}>${quote.price.toFixed(2)}</Text><ChangePill value={quote.change} large /></View>
+                {quote ? <View style={styles.watchPriceBlock}><Text style={styles.watchPrice}>${quote.price.toFixed(2)}</Text><ChangePill value={quote.change} large /></View> : <Text style={styles.watchName}>No live price</Text>}
                 <Pressable accessibilityRole="button" accessibilityLabel={`Remove ${ticker} from watchlist`} hitSlop={hitSlop} onPress={() => onToggleWatch(ticker)} style={({ pressed }) => pressed && styles.pressed}><StarOff size={16} color={colors.textFaint} /></Pressable>
               </View>
             </View>

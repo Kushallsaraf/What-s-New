@@ -64,6 +64,18 @@ def test_ambiguous_bare_words_need_a_marker():
     assert "NOW" not in tickers("NOW is the time, says the campaign group")
 
 
+def test_the_rainforest_is_not_the_retailer():
+    assert "AMZN" not in tickers(
+        "Flávio Bolsonaro leads Brazil's first round, raising Amazon deforestation concerns"
+    )
+    assert "AMZN" not in tickers("Fires spread across the Amazon as the dry season peaks")
+
+
+def test_a_nationality_is_not_a_company():
+    assert "CNQ" not in tickers("Parti Québécois wins but Canadian unity question lingers")
+    assert "RY" not in tickers("Royal family attends the ceremony")
+
+
 # --- the matches that must survive -----------------------------------------
 
 
@@ -73,6 +85,8 @@ def test_full_company_names_still_resolve():
     assert "V" in tickers("Visa Inc. lifts its full-year outlook")
     assert "JNJ" in tickers("Johnson & Johnson settles the talc litigation")
     assert "TSM" in tickers("Taiwan Semiconductor raises capital spending")
+    assert "AMZN" in tickers("Amazon raises its Prime fee")
+    assert "CNQ" in tickers("Canadian Natural Resources lifts output guidance")
 
 
 def test_common_short_forms_still_resolve():

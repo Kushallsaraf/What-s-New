@@ -100,6 +100,9 @@ function AppShell() {
   }, [accessToken, hydrated, watchlist]);
 
   const quotes = research.quotes;
+  // Sample prices stay on the Markets and Explore screens, labelled as such,
+  // but never sit beside an event as if they were its reference price.
+  const eventQuotes = research.pricesLive ? quotes : {};
   const feedItems = research.feedItems.length ? research.feedItems : seedFeedItems;
   const news = useMemo(
     () => feedItems.map(feedEventToNewsItem).filter((item): item is NewsItem => Boolean(item)),
@@ -151,9 +154,9 @@ function AppShell() {
   }
 
   const screen = useMemo(() => {
-    if (tab === 'markets') return <MarketsScreen quotes={quotes} />;
-    if (tab === 'explore') return <ExploreScreen quotes={quotes} watchlist={watchlist} onToggleWatch={toggleWatch} />;
-    if (tab === 'watchlist') return <WatchlistScreen watchlist={watchlist} quotes={quotes} news={news} onToggleWatch={toggleWatch} onOpen={setOpenItem} />;
+    if (tab === 'markets') return <MarketsScreen quotes={quotes} pricesLive={research.pricesLive} />;
+    if (tab === 'explore') return <ExploreScreen quotes={quotes} pricesLive={research.pricesLive} watchlist={watchlist} onToggleWatch={toggleWatch} />;
+    if (tab === 'watchlist') return <WatchlistScreen watchlist={watchlist} quotes={eventQuotes} news={news} onToggleWatch={toggleWatch} onOpen={setOpenItem} />;
     if (tab === 'profile') {
       return (
         <ProfileScreen
@@ -173,7 +176,9 @@ function AppShell() {
         feedItems={feedItems}
         quiet={research.quiet}
         quietMessage={research.quietMessage}
-        quotes={quotes}
+        preview={research.preview}
+        previewMessage={research.previewMessage}
+        quotes={eventQuotes}
         watchlist={watchlist}
         preferences={preferences}
         showMemes={showMemes}
@@ -182,7 +187,7 @@ function AppShell() {
         onToggleWatch={toggleWatch}
       />
     );
-  }, [authEmail, feedItems, news, notifications, preferences, quotes, research.briefing, research.quiet, research.quietMessage, showMemes, tab, watchlist]);
+  }, [authEmail, eventQuotes, feedItems, news, notifications, preferences, quotes, research.briefing, research.preview, research.previewMessage, research.pricesLive, research.quiet, research.quietMessage, showMemes, tab, watchlist]);
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -202,7 +207,7 @@ function AppShell() {
         <BottomNavigation tab={tab} onChange={setTab} bottomInset={insets.bottom} />
       </View>
 
-      <DetailModal item={openItem} quote={openItem ? quotes[openItem.ticker] : undefined} onClose={() => setOpenItem(null)} />
+      <DetailModal item={openItem} quote={openItem ? eventQuotes[openItem.ticker] : undefined} onClose={() => setOpenItem(null)} />
       <BriefingModal briefing={research.briefing} visible={briefingOpen} onClose={() => setBriefingOpen(false)} />
       <AskResearchModal visible={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </SafeAreaView>

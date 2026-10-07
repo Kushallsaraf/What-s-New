@@ -169,3 +169,15 @@ def test_score_is_stable_once_proxies_are_folded_into_tickers():
     before = score_article(a)
     a.tickers = analysis_tickers(a)
     assert score_article(a) == before
+
+
+def test_patterns_match_whole_words_only():
+    """"the fed" used to fire inside "the Federal Intelligence Service"."""
+    def keys(text: str) -> list[str]:
+        return [m.key for m in classify(text)]
+
+    assert "monetary_policy" not in keys(
+        "Former head of the Federal Intelligence Service arrested for treason"
+    )
+    assert "monetary_policy" in keys("The Fed holds rates steady")
+    assert "trade_policy" in keys("New tariffs hit steel imports")

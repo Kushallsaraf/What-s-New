@@ -56,7 +56,7 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
     ? (p.sources as Array<{ label?: string; url?: string; type?: string }>).map((s) => ({
         label: s.label || 'Source',
         url: s.url || '',
-        type: (s.type as 'official' | 'company' | 'market') || 'company',
+        type: (s.type as 'official' | 'company' | 'market' | 'news') || 'news',
       }))
     : [];
 
@@ -83,7 +83,9 @@ export function eventPayloadOf(item: FeedItem): EventPayload | null {
         })),
     bull_case: String(p.bull_case || ''),
     bear_case: String(p.bear_case || ''),
-    risks: String(p.risks || ''),
+    // The pipeline sends a list; String() on it ran the items together
+    // with bare commas.
+    risks: Array.isArray(p.risks) ? p.risks.map(String).filter(Boolean).join('; ') : String(p.risks || ''),
     sources,
     time_horizon: String(p.time_horizon || ''),
     themes,
@@ -141,7 +143,9 @@ export function feedEventToNewsItem(item: FeedItem): NewsItem | null {
     impact: payload.impact,
     confidence: payload.confidence,
     summary: payload.summary,
-    why: payload.summary,
+    // The pipeline has no separate "why it matters" field yet; repeating the
+    // summary under a second heading read as a rendering bug.
+    why: '',
     bullCase: payload.bull_case,
     bearCase: payload.bear_case,
     watch,

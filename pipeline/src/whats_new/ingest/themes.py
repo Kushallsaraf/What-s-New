@@ -89,7 +89,7 @@ THEMES: tuple[Theme, ...] = (
         patterns=(
             "tariff", "trade war", "import duty", "export control",
             "export ban", "trade deal", "trade agreement", "customs duty",
-            "import quota", "trade barrier", "protectionis", "wto ",
+            "import quota", "trade barrier", "protectionis", "wto",
         ),
         assets=("XLI", "XLB", "XLY", "SPY"),
         weight=0.36,
@@ -110,7 +110,7 @@ THEMES: tuple[Theme, ...] = (
         patterns=(
             "opec", "crude oil", "oil production", "oil output", "barrel",
             "refinery", "refining capacity", "natural gas", "pipeline",
-            "lng ", "gasoline price", "fuel cost", "oil price",
+            "lng", "gasoline price", "fuel cost", "oil price",
             "petroleum", "crack spread", "energy price",
         ),
         assets=("XLE", "USO"),
@@ -225,11 +225,19 @@ THEMES: tuple[Theme, ...] = (
     ),
 )
 
+def _whole_words(phrases: tuple[str, ...]) -> re.Pattern[str]:
+    """Match phrases as whole words, plurals allowed. Bare substrings let
+    "the fed" fire on "the Federal Intelligence Service" and "inc" on
+    "incident", which routed spy and anniversary stories to monetary policy."""
+    body = "|".join(re.escape(p) for p in sorted(phrases, key=len, reverse=True))
+    return re.compile(rf"(?<![a-z0-9])(?:{body})(?:s|es)?(?![a-z0-9])")
+
+
 _COMPILED: tuple[tuple[Theme, re.Pattern[str], re.Pattern[str] | None], ...] = tuple(
     (
         theme,
-        re.compile("|".join(re.escape(p) for p in theme.patterns)),
-        re.compile("|".join(re.escape(c) for c in theme.context)) if theme.context else None,
+        _whole_words(theme.patterns),
+        _whole_words(theme.context) if theme.context else None,
     )
     for theme in THEMES
 )

@@ -24,6 +24,11 @@ export type ResearchSnapshot = {
   feedItems: FeedItem[];
   quiet: boolean;
   quietMessage?: string | null;
+  /** False when `quotes` are the bundled sample prices rather than market data. */
+  pricesLive: boolean;
+  /** The feed is a dry-run snapshot; `previewMessage` says so in the API's words. */
+  preview: boolean;
+  previewMessage?: string | null;
 };
 
 export const bundledSnapshot: ResearchSnapshot = {
@@ -33,7 +38,20 @@ export const bundledSnapshot: ResearchSnapshot = {
   feedItems: [],
   quiet: false,
   quietMessage: null,
+  pricesLive: false,
+  preview: false,
+  previewMessage: null,
 };
+
+function feedFields(feed: FeedResponse) {
+  return {
+    feedItems: feed.items,
+    quiet: feed.quiet,
+    quietMessage: feed.preview ? null : feed.message,
+    preview: Boolean(feed.preview),
+    previewMessage: feed.preview ? feed.message : null,
+  };
+}
 
 function parseNumber(value: string | number) {
   if (typeof value === 'number') return value;
@@ -69,13 +87,15 @@ export async function loadResearchSnapshot(
       loadFeed(watchlist, signal).catch(() => ({ items: [], quiet: true, message: null }) as FeedResponse),
     ]);
     if (!assetsResponse.ok || !briefingsResponse.ok) {
-      return { ...bundledSnapshot, feedItems: feed.items, quiet: feed.quiet, quietMessage: feed.message };
+      return { ...bundledSnapshot, ...feedFields(feed) };
     }
 
     const assets = await assetsResponse.json() as AssetsResponse;
     const briefings = await briefingsResponse.json() as BriefingsResponse;
+    // The API answers with no assets, not placeholder prices, when it has no
+    // market data; anything still marked as a fallback is treated the same.
     const remoteQuotes = Object.fromEntries(
-      assets.assets.map((asset) => [
+      assets.assets.filter((asset) => asset.freshness !== 'bundled-fallback').map((asset) => [
         asset.symbol,
         {
           price: parseNumber(asset.value),
@@ -84,9 +104,11 @@ export async function loadResearchSnapshot(
         },
       ]),
     );
+    const pricesLive = Object.keys(remoteQuotes).length > 0;
+    const quotes = pricesLive ? remoteQuotes : initialQuotes;
     const remoteBrief = briefings.items[0];
     if (!remoteBrief) {
-      return { ...bundledSnapshot, quotes: { ...initialQuotes, ...remoteQuotes }, mode: 'remote-delayed', feedItems: feed.items, quiet: feed.quiet, quietMessage: feed.message };
+      return { ...bundledSnapshot, quotes, pricesLive, mode: 'remote-delayed', ...feedFields(feed) };
     }
 
     return {
@@ -98,11 +120,10 @@ export async function loadResearchSnapshot(
         scenarios: remoteBrief.scenarios.weakening,
         risks: remoteBrief.risks.join(' '),
       },
-      quotes: { ...initialQuotes, ...remoteQuotes },
+      quotes,
+      pricesLive,
       mode: 'remote-delayed',
-      feedItems: feed.items,
-      quiet: feed.quiet,
-      quietMessage: feed.message,
+      ...feedFields(feed),
     };
   } catch {
     return bundledSnapshot;

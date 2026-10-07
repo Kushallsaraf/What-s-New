@@ -13,6 +13,8 @@ type Props = {
   feedItems: FeedItem[];
   quiet?: boolean;
   quietMessage?: string | null;
+  preview?: boolean;
+  previewMessage?: string | null;
   quotes: Record<string, Quote>;
   watchlist: string[];
   preferences: string[];
@@ -34,6 +36,8 @@ export function HomeScreen({
   feedItems,
   quiet,
   quietMessage,
+  preview,
+  previewMessage,
   quotes,
   watchlist,
   preferences,
@@ -67,7 +71,9 @@ export function HomeScreen({
     return selected;
   }, [news, preferences]);
 
-  const alert = news.find((item) => item.live) ?? news[0];
+  // Only a breaking event earns the banner. Falling back to the top card
+  // announced a move for a ticker the app has no price data on.
+  const alert = news.find((item) => item.live);
   const nonEventItems = filter === 'all' ? feedItems.filter((item) => item.card_type !== 'event') : [];
 
   function renderSupplementaryCard(item: FeedItem) {
@@ -96,9 +102,18 @@ export function HomeScreen({
           </Pressable>
         }
       />
-      <View style={[styles.liveBesideTitle, styles.noPointerEvents]}>
-        <LiveDot />
-      </View>
+      {preview ? null : (
+        <View style={[styles.liveBesideTitle, styles.noPointerEvents]}>
+          <LiveDot />
+        </View>
+      )}
+
+      {preview ? (
+        <View style={styles.quietBox}>
+          <Text style={styles.quietTitle}>Preview data</Text>
+          <Text style={styles.quietText}>{previewMessage || 'A one-off pipeline snapshot — not live.'}</Text>
+        </View>
+      ) : null}
 
       {showAlert && alert ? (
         <View style={styles.alert}>
@@ -110,7 +125,7 @@ export function HomeScreen({
           >
             <Text style={styles.alertEmoji}>🚨</Text>
             <View style={styles.alertCopy}>
-              <Text style={styles.alertTitle}>${alert.ticker} JUST MOVED</Text>
+              <Text style={styles.alertTitle}>BREAKING · ${alert.ticker}</Text>
               <Text style={styles.alertText} numberOfLines={2}>
                 {alert.headline}. Evidence read:{' '}
                 <Text style={alert.sentiment === 'bullish' ? styles.bull : alert.sentiment === 'bearish' ? styles.bear : styles.neutral}>

@@ -49,9 +49,11 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
           <Section title="What happened?">
             <Text style={styles.paragraph}>{item.summary}</Text>
           </Section>
-          <Section title="Why investors care">
-            <Text style={styles.paragraph}>{item.why}</Text>
-          </Section>
+          {item.why && item.why !== item.summary ? (
+            <Section title="Why investors care">
+              <Text style={styles.paragraph}>{item.why}</Text>
+            </Section>
+          ) : null}
           <Section title="Scenarios">
             <View style={[styles.scenarioCard, styles.bullCard]}>
               <Text style={styles.scenarioLabelBull}>UPSIDE / CONFIRMATION</Text>
@@ -63,17 +65,17 @@ export function DetailModal({ item, quote, onClose }: { item: NewsItem | null; q
             </View>
           </Section>
           <Section title="What to watch next">
-            {item.watch.map((watchItem) => (
-              <View key={watchItem} style={styles.watchRow}>
+            {item.watch.map((watchItem, index) => (
+              <View key={`${index}-${watchItem}`} style={styles.watchRow}>
                 <ChevronRight size={14} color={colors.brand} style={styles.watchIcon} />
                 <Text style={styles.paragraph}>{watchItem}</Text>
               </View>
             ))}
           </Section>
           <Section title="Evidence & sources">
-            {item.sources.map((source) => (
+            {item.sources.map((source, index) => (
               <Pressable
-                key={source.url}
+                key={`${index}-${source.url}`}
                 accessibilityRole="link"
                 onPress={() => Linking.openURL(source.url)}
                 style={({ pressed }) => [styles.sourceRow, pressed && styles.pressed]}

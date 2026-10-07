@@ -1,7 +1,5 @@
 from fastapi import APIRouter
 
-from whats_new.universe import STOCKS
-
 router = APIRouter()
 
 
@@ -47,15 +45,6 @@ def assets() -> dict:
     except Exception:
         pass
 
-    # Fallback demo-compatible payload from universe bases
-    demo = []
-    for stock in STOCKS[:30]:
-        demo.append(
-            {
-                "symbol": stock.ticker,
-                "value": 100.0,
-                "move": 0.0,
-                "freshness": "bundled-fallback",
-            }
-        )
-    return {"status": "ok", "delayed": True, "assets": demo}
+    # No market data yet. Say so, rather than inventing a $100.00 price that
+    # the app would show beside a real news event.
+    return {"status": "unavailable", "delayed": True, "assets": []}

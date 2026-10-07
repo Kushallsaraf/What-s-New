@@ -28,6 +28,17 @@ return ONLY valid JSON with this schema:
 }
 Directions: bullish|mildly_bullish|neutral|mildly_bearish|bearish.
 confidence and importance are 0..1. Never give buy/sell advice.
+
+importance is how much the story matters to markets. confidence is how sure
+you are that the story moves the instruments you list, in the direction you
+give, over the horizon. A story with no plausible market effect gets low
+importance and low confidence: confidence describes the call, not how sure
+you are that there is no call.
+
+The text is shown to investors in an app. Write about markets, not about this
+task: do not mention candidate instruments, tags, clusters, "the article", or
+how a company came to be mentioned. Name an instrument by what it tracks, e.g.
+"energy stocks (XLE)". Leave out instruments the story does not move.
 """
 
 
@@ -76,7 +87,7 @@ def analyze_cluster(
         return AnalysisResult(
             event=cached.get("event", cluster.headline),
             event_type=cached.get("event_type", "other"),
-            tickers=list(cached.get("tickers") or cluster.tickers),
+            tickers=list(cached["tickers"] if "tickers" in cached else cluster.tickers),
             direction=dict(cached.get("direction") or {}),
             time_horizon=cached.get("time_horizon", "1-5 trading days"),
             confidence=float(cached.get("confidence") or 0),
@@ -100,7 +111,7 @@ def analyze_cluster(
     )
     user = (
         f"Cluster key: {cluster.cluster_key}\n"
-        f"Known tickers: {', '.join(cluster.tickers) or 'unknown'}\n"
+        f"Candidate instruments (drop any the story does not move): {', '.join(cluster.tickers) or 'none'}\n"
         f"Articles:\n{headlines}\n"
         f"Primary summary: {cluster.articles[0].summary[:800] if cluster.articles else ''}"
     )
@@ -118,7 +129,10 @@ def analyze_cluster(
             result = AnalysisResult(
                 event=str(data.get("event") or cluster.headline),
                 event_type=str(data.get("event_type") or "other"),
-                tickers=list(data.get("tickers") or cluster.tickers),
+                # An empty list is an answer: the model found nothing the
+                # story moves. Falling back to the candidates put SPY, GLD and
+                # TLT back on a Gaza casualty report.
+                tickers=list(data["tickers"] or []),
                 direction={str(k): str(v) for k, v in (data.get("direction") or {}).items()},
                 time_horizon=str(data.get("time_horizon") or "1-5 trading days"),
                 confidence=float(data.get("confidence") or 0),

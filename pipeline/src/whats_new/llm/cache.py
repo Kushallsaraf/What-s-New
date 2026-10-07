@@ -7,7 +7,7 @@ from typing import Any
 from whats_new.http_util import content_hash
 
 
-PROMPT_VERSION = "event-analysis-v1"
+PROMPT_VERSION = "event-analysis-v2"
 REPORT_PROMPT_VERSION = "report-v1"
 
 

@@ -25,12 +25,14 @@ _AMBIGUOUS_BARE = frozenset({"ALL", "CAT", "GAP", "ICE", "KEY", "NOW", "ONE", "O
 _GENERIC_FIRST_WORDS = frozenset(
     {
         "advanced", "airlines", "american", "analog", "applied", "bank",
-        "capital", "charles", "communication", "consumer", "digital", "duke",
-        "energy", "financial", "first", "general", "global", "health",
+        "booking", "cadence", "canadian", "capital", "charles",
+        "communication", "consumer", "digital", "duke", "energy",
+        "equinox", "financial", "first", "general", "global", "health",
         "industrial", "intercontinental", "international", "intuitive",
         "johnson", "marathon", "materials", "morgan", "national", "northern",
-        "palo", "phillips", "public", "real", "select", "southern",
-        "standard", "taiwan", "technology", "texas", "u.s.", "union",
+        "palo", "phillips", "public", "real", "rocket", "royal", "select",
+        "southern", "standard", "taiwan", "technology", "texas", "thermo",
+        "u.s.", "union",
         "united", "universal", "utilities", "visa", "wells", "williams",
     }
 )
@@ -66,6 +68,12 @@ _ALIASES.update(
     }
 )
 
+# Places that share a company's name. Blanked before alias matching so
+# "Amazon deforestation" in a Brazil election story stops naming AMZN.
+_NOT_COMPANY_RE = re.compile(
+    r"\bthe amazon\b|\bamazon(?:ian)?\s+(?:rainforest|forest|river|basin|region|deforestation|jungle)\b"
+)
+
 # Whole-token matching. A plain `alias in text` check fired on "advanced" in
 # "advanced drone" and "american" in "American officials".
 _ALIAS_RE = re.compile(
@@ -82,7 +90,7 @@ def extract_tickers(article: RawArticle) -> list[str]:
         if up in TICKERS and up not in found:
             found.append(up)
 
-    blob = f"{article.title} {article.summary} {article.content}".lower()
+    blob = _NOT_COMPANY_RE.sub(" ", f"{article.title} {article.summary} {article.content}".lower())
     for alias in _ALIAS_RE.findall(blob):
         ticker = _ALIASES[alias]
         if ticker not in found:

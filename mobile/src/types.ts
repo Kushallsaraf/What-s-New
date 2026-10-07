@@ -19,7 +19,7 @@ export type Quote = {
 export type EvidenceLink = {
   label: string;
   url: string;
-  type: 'official' | 'company' | 'market';
+  type: 'official' | 'company' | 'market' | 'news';
 };
 
 export type NewsItem = {
@@ -115,4 +115,6 @@ export type FeedResponse = {
   sections?: Record<string, FeedItem[]>;
   quiet: boolean;
   message?: string | null;
+  /** Rows came from a dry pipeline run, not the database. */
+  preview?: boolean;
 };

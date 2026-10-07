@@ -12,6 +12,42 @@ def _direction_label(direction: str) -> str:
     return direction.replace("_", " ")
 
 
+# Publishers of primary data and filings. Everything else is reporting about
+# events, and labelling CNBC a "company source" overstated the evidence.
+OFFICIAL_SOURCES = {"Federal Reserve", "BLS Releases", "EIA Today in Energy"}
+
+# A breaking card needs both weight and freshness. The bar was importance
+# >= 0.8, which the keyword heuristic cleared easily but an LLM's more
+# conservative scale (a live Claude run topped out at 0.65) never did.
+BREAKING_MIN_IMPORTANCE = 0.6
+BREAKING_MAX_AGE = timedelta(hours=6)
+
+
+def _source_type(name: str) -> str:
+    if name.upper().startswith("SEC") or name in OFFICIAL_SOURCES:
+        return "official"
+    return "news"
+
+
+def _cluster_sources(articles: list, limit: int = 5) -> list[dict[str, str]]:
+    """One entry per URL. Syndicated stories arrive once per feed (CNBC Top
+    News, Energy and World all carry the same link), which read as three
+    pieces of evidence and gave the app duplicate list keys."""
+    seen: set[str] = set()
+    out: list[dict[str, str]] = []
+    for a in articles:
+        if not a.url or a.url in seen:
+            continue
+        seen.add(a.url)
+        out.append({"label": a.source, "url": a.url, "type": _source_type(a.source)})
+    return out[:limit]
+
+
+def _section(importance: float, published: datetime | None, now: datetime) -> str:
+    fresh = published is not None and now - published <= BREAKING_MAX_AGE
+    return "breaking" if importance >= BREAKING_MIN_IMPORTANCE and fresh else "recent"
+
+
 def _theme_labels(articles: list) -> list[dict[str, str]]:
     """Themes across a cluster, as {key, label}, strongest theme first."""
     from whats_new.ingest.themes import THEMES
@@ -83,6 +119,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
     rows_in = len(raw_articles)
     stored = 0
     analyzed = 0
+    unmapped = 0
     cost = 0.0
     tokens = 0
     budget = settings.llm_budget_usd_per_run
@@ -144,6 +181,12 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         else:
             result = heuristic_analysis(cluster, importance_guess)
 
+        if not result.tickers and not result.impacts:
+            # Analysed, and nothing in the market moves on it. A card with no
+            # instrument is noise, so it never reaches the feed.
+            unmapped += 1
+            continue
+
         impacts = result.impacts or [
             {
                 "ticker": t,
@@ -181,11 +224,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             "bull_case": result.bull_case,
             "bear_case": result.bear_case,
             "risks": result.risks,
-            "sources": [
-                {"label": a.source, "url": a.url, "type": "company"}
-                for a in cluster.articles
-                if a.url
-            ][:5],
+            "sources": _cluster_sources(cluster.articles),
             "time_horizon": result.time_horizon,
             # Which market themes routed this story here. Empty for an event
             # that named a company outright; the app uses it to distinguish
@@ -194,14 +233,15 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             # its own copy of the taxonomy in sync.
             "themes": _theme_labels(cluster.articles),
         }
-        section = "breaking" if result.importance >= 0.8 else "recent"
+        published = [a.published_at for a in cluster.articles if a.published_at]
+        latest = max(published) if published else None
+        section = _section(result.importance, latest, datetime.now(timezone.utc))
 
         if dry_run:
             # Everything above is the real pipeline; only persistence is
             # skipped. Rows carry the same shape /api/feed returns, so the
             # preview file can be served to the app unchanged.
-            published = [a.published_at for a in cluster.articles if a.published_at]
-            created_at = max(published) if published else datetime.now(timezone.utc)
+            created_at = latest or datetime.now(timezone.utc)
             preview.append(
                 {
                     "id": cluster.cluster_key,
@@ -335,6 +375,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         "rows_out": stored,
         "clusters": len(clusters),
         "analyzed": analyzed,
+        "unmapped": unmapped,
         "cost_usd": cost,
     }
     if dry_run:
