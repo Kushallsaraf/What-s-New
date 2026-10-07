@@ -146,7 +146,7 @@ Run `python -m whats_new.doctor` (or `whats-new-doctor`) to see active adapters.
 | | |
 | --- | --- |
 | **What** | Structured event analysis and daily reports |
-| **Local default** | `WN_LLM_PROVIDER=openai` with `LLM_API_KEY` |
+| **Local default** | `WN_LLM_PROVIDER=anthropic` (or `openai`) with `LLM_API_KEY` |
 | **Target** | Any OpenAI-compatible or vendor client behind `llm/client.py` |
 | **Env switch** | `WN_LLM_PROVIDER` |
 | **Trigger** | Cost / quality tradeoff; swap models via `LLM_MODEL_*` |

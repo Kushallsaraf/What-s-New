@@ -22,7 +22,16 @@ class LlmResponse:
 _PRICE = {
     "gpt-4o-mini": (0.15, 0.60),
     "gpt-4o": (2.50, 10.00),
+    "claude-opus-5-5": (4.00, 20.00),
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-haiku-4-5": (1.00, 5.00),
 }
+
+
+def _extract_json(text: str) -> str:
+    """Claude has no JSON mode here; trim any prose or code fence around the object."""
+    start, end = text.find("{"), text.rfind("}")
+    return text[start : end + 1] if start != -1 and end > start else text
 
 
 def _estimate_cost(model: str, prompt_tokens: int, completion_tokens: int) -> float:
@@ -50,7 +59,41 @@ class LlmClient:
         model_name = model or self.model
         if self.provider in {"openai", "openai-compatible"}:
             return self._openai(system, user, model_name)
+        if self.provider == "anthropic":
+            return self._anthropic(system, user, model_name)
         raise ValueError(f"Unsupported WN_LLM_PROVIDER: {self.provider}")
+
+    def _anthropic(self, system: str, user: str, model: str) -> LlmResponse:
+        import anthropic
+
+        from whats_new.config import get_settings
+
+        effort = get_settings().llm_effort
+        client = anthropic.Anthropic(api_key=self.api_key, timeout=90.0)
+        # "default" fallbacks re-run a safety decline on another model inside
+        # the same call, so one refusal doesn't drop a cluster to heuristics.
+        message = client.beta.messages.create(
+            model=model,
+            max_tokens=16000,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
+            **({"output_config": {"effort": effort}} if effort else {}),
+        )
+        if message.stop_reason == "refusal":
+            raise RuntimeError(f"Claude declined: {message.stop_details}")
+        text = "".join(b.text for b in message.content if b.type == "text")
+        pt = message.usage.input_tokens
+        ct = message.usage.output_tokens
+        return LlmResponse(
+            text=_extract_json(text),
+            model=message.model,
+            prompt_tokens=pt,
+            completion_tokens=ct,
+            cost_usd=_estimate_cost(message.model, pt, ct),
+            raw=message.to_dict(),
+        )
 
     def _openai(self, system: str, user: str, model: str) -> LlmResponse:
         base = "https://api.openai.com/v1/chat/completions"

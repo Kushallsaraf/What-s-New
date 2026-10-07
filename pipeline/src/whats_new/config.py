@@ -55,6 +55,7 @@ class Settings:
     llm_model_analysis: str
     llm_model_reports: str
     llm_budget_usd_per_run: float
+    llm_effort: str
     news_sources: tuple[str, ...]
     fixtures_dir: Path
     feed_preview_file: Path | None
@@ -85,6 +86,7 @@ def load_settings() -> Settings:
     sources = tuple(s.strip() for s in news_raw.split(",") if s.strip())
     macro_raw = _env("WN_MACRO_SOURCES", "treasury,bls,fred,eia")
     macro_sources = tuple(s.strip() for s in macro_raw.split(",") if s.strip())
+    llm_provider = _env("WN_LLM_PROVIDER", "anthropic").lower()
 
     def csv_env(name: str, default: str) -> tuple[str, ...]:
         return tuple(value.strip().upper() for value in _env(name, default).split(",") if value.strip())
@@ -124,11 +126,18 @@ def load_settings() -> Settings:
             "CUSR0000SA0,CES0000000001,LNS14000000",
         ),
         macro_sources=macro_sources,
-        llm_provider=_env("WN_LLM_PROVIDER", "openai"),
-        llm_api_key=_env("LLM_API_KEY") or _env("OPENAI_API_KEY"),
-        llm_model_analysis=_env("LLM_MODEL_ANALYSIS", "gpt-4o-mini"),
-        llm_model_reports=_env("LLM_MODEL_REPORTS", "gpt-4o"),
+        llm_provider=llm_provider,
+        llm_api_key=_env("LLM_API_KEY")
+        or _env("ANTHROPIC_API_KEY" if llm_provider == "anthropic" else "OPENAI_API_KEY"),
+        llm_model_analysis=_env(
+            "LLM_MODEL_ANALYSIS", "claude-opus-5-5" if llm_provider == "anthropic" else "gpt-4o-mini"
+        ),
+        llm_model_reports=_env(
+            "LLM_MODEL_REPORTS", "claude-opus-5-5" if llm_provider == "anthropic" else "gpt-4o"
+        ),
         llm_budget_usd_per_run=_env_float("LLM_BUDGET_USD_PER_RUN", 1.0),
+        # Anthropic only: low|medium|high|xhigh|max. Blank keeps the model default.
+        llm_effort=_env("LLM_EFFORT", ""),
         news_sources=sources,
         fixtures_dir=Path(_env("FIXTURES_DIR", str(root / "fixtures"))),
         # Opt-in only. Lets /api/feed serve a dry-run file while there is no

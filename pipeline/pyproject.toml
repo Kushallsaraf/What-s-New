@@ -23,6 +23,7 @@ data = [
   "python-dotenv>=1.0",
 ]
 llm = [
+  "anthropic>=1.11",
   "httpx>=0.27",
   "pydantic>=2.7",
   "python-dotenv>=1.0",

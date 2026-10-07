@@ -51,6 +51,7 @@ def no_llm(monkeypatch):
 
     monkeypatch.setenv("LLM_API_KEY", "")
     monkeypatch.setenv("OPENAI_API_KEY", "")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")
     config.reset_settings()
     yield
     config.reset_settings()
